@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+TCP_PORTS=(8443 9000 9090 9999 7070 8888 4443 8080)
+UDP_STARTS=(5060 5000 5100 6000 6100)
+UDP_WIDTHS=(10 11 20 5)
+
+it=$(( RANDOM % ${#TCP_PORTS[@]} ))
+iu=$(( RANDOM % ${#UDP_STARTS[@]} ))
+iw=$(( RANDOM % ${#UDP_WIDTHS[@]} ))
+
+START=${UDP_STARTS[$iu]}
+WIDTH=${UDP_WIDTHS[$iw]}
+
+echo "TCP_PORT=${TCP_PORTS[$it]}"
+echo "UDP_START=$START"
+echo "UDP_END=$(( START + WIDTH ))"

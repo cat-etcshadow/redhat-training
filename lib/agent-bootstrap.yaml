@@ -1,0 +1,15 @@
+#cloud-config
+# Bootstraps the Incus VM agent on first boot.
+# Rocky GenericCloud images do not ship with the incus-agent-loader service.
+# This mounts the 9p config drive Incus provides and runs its install.sh,
+# which drops the udev rule + systemd service that auto-start the agent on
+# subsequent reboots.
+runcmd:
+  - modprobe 9pnet_virtio || true
+  - mkdir -p /run/incus-config-bootstrap
+  - mount -t 9p config /run/incus-config-bootstrap -o access=0,trans=virtio,size=1048576
+  - sh /run/incus-config-bootstrap/install.sh
+  - umount /run/incus-config-bootstrap
+  - rmdir /run/incus-config-bootstrap
+  - systemctl daemon-reload
+  - systemctl start incus-agent

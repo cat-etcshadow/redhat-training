@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# rhtr — Red Hat Training Runner
+set -euo pipefail
+
+# Resolve repo root from the real path of this script (survives symlinks)
+RHTR_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+STATE_DIR="$RHTR_DIR/.state"
+
+# Source all shared libraries
+source "$RHTR_DIR/lib/core.sh"
+source "$RHTR_DIR/lib/vm.sh"
+source "$RHTR_DIR/lib/select.sh"
+source "$RHTR_DIR/lib/report.sh"
+source "$RHTR_DIR/lib/progress.sh"
+source "$RHTR_DIR/lib/list.sh"
+source "$RHTR_DIR/lib/exam.sh"
+
+# ── usage ─────────────────────────────────────────────────────────────────────
+usage() {
+  cat <<'EOF'
+
+  rhtr — Red Hat Training Runner
+
+  Usage:
+    rhtr list-certs
+    rhtr import-image <alias> <path-to-qcow2>
+    rhtr <cert> <command> [options]
+
+  Session commands:
+    new       [--profile <name>] [--fixed <name>] [--topic <ch>] [--rhel <8|9|10>]
+    train     [--topic <ch>] [--difficulty easy|medium|hard] [--rhel <8|9|10>]
+    shell     [--node <name>]
+    grade
+    hint      [<task-number>]
+    reset
+    destroy
+    status
+    tasks     (show tasks for active session or last session)
+
+  Discovery commands (no VM required):
+    list-topics
+    list-tasks    [--topic <ch>] [--difficulty <level>] [--rhel <version>]
+    list-profiles
+    list-fixed
+    show          <chapter/task-variant>
+    progress      [--topic <ch>]
+
+EOF
+}
+
+# ── argument parsing ──────────────────────────────────────────────────────────
+[[ $# -eq 0 ]] && usage && exit 0
+
+# Global commands that don't need a cert
+case "$1" in
+  list-certs)   cmd_list_certs; exit 0 ;;
+  import-image) shift; vm_import_image "$@"; exit 0 ;;
+  --help|-h)    usage; exit 0 ;;
+esac
+
+# All other commands: rhtr <cert> <command> [args...]
+CERT="$1"; shift
+[[ $# -eq 0 ]] && usage && exit 1
+
+CMD="$1"; shift
+
+# Load cert config if it exists
+CERT_CONF="$RHTR_DIR/certs/$CERT/cert.conf"
+[[ -f "$CERT_CONF" ]] || die "Unknown cert: '$CERT'  (no certs/$CERT/cert.conf found)"
+source "$CERT_CONF"
+
+# Load topology so VM_NAMES and topology_* functions are available when needed
+TOPOLOGY_FILE="$RHTR_DIR/certs/$CERT/topology.sh"
+[[ -f "$TOPOLOGY_FILE" ]] && source "$TOPOLOGY_FILE"
+
+# ── dispatch ──────────────────────────────────────────────────────────────────
+case "$CMD" in
+  # Session
+  new)          cmd_new "$@" ;;
+  train)        cmd_train "$@" ;;
+  shell)        cmd_shell "$@" ;;
+  grade)        cmd_grade ;;
+  hint)         cmd_hint "$@" ;;
+  reset)        cmd_reset ;;
+  destroy)      cmd_destroy ;;
+  status)       cmd_status ;;
+  tasks)        cmd_tasks ;;
+
+  # Discovery
+  list-topics)   cmd_list_topics ;;
+  list-tasks)    cmd_list_tasks "$@" ;;
+  list-profiles) cmd_list_profiles ;;
+  list-fixed)    cmd_list_fixed ;;
+  show)          cmd_show_task "$@" ;;
+  progress)      cmd_progress "$@" ;;
+
+  *) echo "Unknown command: $CMD"; usage; exit 1 ;;
+esac

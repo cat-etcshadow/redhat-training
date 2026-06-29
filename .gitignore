@@ -1,0 +1,16 @@
+# runtime state — never commit
+.state/
+.last-session/
+
+# downloaded VM images
+*.qcow2
+*.img
+*.raw
+
+# editor
+*.swp
+*.swo
+*~
+.DS_Store
+.idea/
+.vscode/
