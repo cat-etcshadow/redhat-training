@@ -1,6 +1,6 @@
 ## Run a container from a local image and inspect it
 
-The image `registry.access.redhat.com/ubi9/ubi` is already available on the system.
+The image `registry.access.redhat.com/ubi9/ubi` should be available on the system (pre-cached at setup time). If `podman images` shows no images, you will need to pull it manually: `podman pull registry.access.redhat.com/ubi9/ubi`.
 
 Your task:
 

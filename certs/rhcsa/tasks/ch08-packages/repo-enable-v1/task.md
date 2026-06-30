@@ -10,3 +10,8 @@ Your task:
 3. Install the package **epel-release** from that repository.
 
 The repository must remain enabled after a reboot.
+
+> **Lab note:** The simulated `extras` repo in this environment uses a local
+> file path and does not contain `epel-release`. The grader only checks that
+> the repo is persistently enabled — the package install step is for practice
+> with real RHEL repos where epel-release is available.

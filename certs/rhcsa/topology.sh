@@ -72,8 +72,9 @@ topology_create() {
       vm_exec "$vm" podman save -o /var/cache/rhtr-ubi9.tar registry.access.redhat.com/ubi9/ubi </dev/null &>/dev/null || true
       ok "Container image cached at /var/cache/rhtr-ubi9.tar"
     else
-      warn "Could not pull ubi9 image — container tasks will not work offline."
-      warn "If your setup has internet access, run: incus exec $vm -- podman pull registry.access.redhat.com/ubi9/ubi"
+      warn "Could not pull ubi9 image — container tasks will need internet at task setup time."
+      warn "To cache it now:  incus exec $vm -- podman pull registry.access.redhat.com/ubi9/ubi"
+      warn "Then save cache:  incus exec $vm -- podman save -o /var/cache/rhtr-ubi9.tar registry.access.redhat.com/ubi9/ubi"
     fi
 
     # Attach the block disk and wait for udev so storage setup scripts see it immediately.

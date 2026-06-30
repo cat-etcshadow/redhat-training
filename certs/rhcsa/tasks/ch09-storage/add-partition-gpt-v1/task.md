@@ -7,30 +7,16 @@ Your task:
 
 1. Identify the extra disk (it will be the second disk, not the OS disk).
 
-2. Create a **GPT partition table** and a single partition of **{{PART_SIZE}}**
-   using `parted` (or `gdisk`):
-   ```
-   parted /dev/sdX --script mklabel gpt
-   parted /dev/sdX --script mkpart primary xfs 1MiB {{PART_SIZE}}
-   ```
-   Or with `gdisk` interactively.
+2. Create a **GPT partition table** on the disk (if none exists), then add a
+   **{{PART_SIZE}} partition** using `parted` or `gdisk`.
 
-3. Format the partition with **XFS**:
-   ```
-   mkfs.xfs /dev/sdX1
-   ```
+3. Format the partition with **XFS**.
 
 4. Mount the partition persistently at **{{MOUNT_POINT}}** by adding an entry
-   to `/etc/fstab` using the partition's **UUID**:
-   ```
-   UUID=<uuid>  {{MOUNT_POINT}}  xfs  defaults  0  2
-   ```
+   to `/etc/fstab` using the partition's **UUID**.
 
-5. Mount all filesystems from fstab and verify:
-   ```
-   mount -a
-   df -h {{MOUNT_POINT}}
-   ```
+5. Mount all filesystems from fstab and verify with `df -h {{MOUNT_POINT}}`.
 
-> Key difference from MBR: GPT supports disks > 2 TiB and up to 128 partitions.
-> Use `parted` or `gdisk` (from `gdisk` package) instead of `fdisk` for GPT.
+> **Lab note:** In a full exam the extra disk is shared across storage and LVM
+> tasks. If the disk already has a partition table, add a new partition in the
+> free space rather than recreating the table.

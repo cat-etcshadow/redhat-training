@@ -1,6 +1,6 @@
 ## Mount host storage into a container
 
-The image `registry.access.redhat.com/ubi9/ubi` is already available on the system.
+The image `registry.access.redhat.com/ubi9/ubi` should be available on the system (pre-cached at setup time). If `podman images` shows no images, pull it manually: `podman pull registry.access.redhat.com/ubi9/ubi`.
 
 Your task:
 
