@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+NAMES=(users.yml user-setup.yml manage-users.yml accounts.yml)
+GROUPS=(webteam dbteam devops sysops)
+USERS=(webmaster dbadmin devuser sysadmin)
+GIDS=(3000 3001 3002 3003)
+UIDS=(4000 4001 4002 4003)
+SHELLS=(/bin/bash /bin/sh /usr/bin/bash)
+idx=$(( RANDOM % ${#NAMES[@]} ))
+gidx=$(( RANDOM % ${#GROUPS[@]} ))
+sidx=$(( RANDOM % ${#SHELLS[@]} ))
+echo "ANSIBLE_DIR=/home/student/ansible"
+echo "INVENTORY_FILE=/home/student/ansible/inventory"
+echo "PLAYBOOK_FILE=/home/student/ansible/${NAMES[$idx]}"
+echo "GROUP_NAME=${GROUPS[$gidx]}"
+echo "GROUP_GID=${GIDS[$gidx]}"
+echo "USER_NAME=${USERS[$gidx]}"
+echo "USER_UID=${UIDS[$gidx]}"
+echo "USER_SHELL=${SHELLS[$sidx]}"
+echo "SSH_KEY=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC2test+key+here ansible-training"

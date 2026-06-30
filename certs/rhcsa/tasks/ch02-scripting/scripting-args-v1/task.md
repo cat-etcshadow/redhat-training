@@ -24,6 +24,3 @@ Requirements:
 5. Print: `Backed up <source> to <destination-path>`
 
 6. Exit **0** on success.
-
-Key variables: `$1` (first arg), `$2` (second arg), `$#` (argument count),
-`$0` (script name), `$(basename "$1")` (filename without path).

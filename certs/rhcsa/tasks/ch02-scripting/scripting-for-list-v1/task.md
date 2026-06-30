@@ -24,12 +24,3 @@ Created: /srv/app/config
 Created: /srv/app/backups
 Created: /srv/app/tmp
 ```
-
-Key construct:
-```bash
-for name in logs data config backups tmp; do
-  mkdir -p "$base/$name"
-  echo "This is the $name directory" > "$base/$name/README"
-  echo "Created: $base/$name"
-done
-```

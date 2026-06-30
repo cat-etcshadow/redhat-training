@@ -56,6 +56,8 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `grep-regex-v1` — grep -ri for errors and grep -rE for IPv4 addresses in log files
 - [x] `grep-extended-v1` — grep to filter /etc/passwd-format file, cut to extract usernames
 - [x] `scp-transfer-v1` — scp file to localhost, rsync directory; SSH key pre-configured
+- [x] `vim-edit-v1` — edit config file with a text editor (key=value substitutions)
+- [x] `man-docs-v1` — use man pages to find archive flag for cp, use find -size to locate large files
 
 ### ch02 — Shell Scripting
 - [x] `scripting-if-v1` — write check_user.sh: if/elif/else, id check, specific exit codes
@@ -66,6 +68,7 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `scripting-case-v1` — write svc_ctl.sh: case statement for start/stop/restart/status/enable
 - [x] `scripting-functions-v1` — write disk_report.sh: named functions, --output flag, mountpoint check
 - [x] `scripting-heredoc-v1` — write gen_config.sh: heredoc with/without variable expansion
+- [x] `scripting-exit-codes-v1` — write script that uses meaningful exit codes, use $? and ||/&&
 
 ### ch03 — Manage Local Users and Groups
 - [x] `create-users-v1` — create two users with specific UIDs, group with GID, sudo NOPASSWD
@@ -94,6 +97,7 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 ### ch06 — Tune System Performance
 - [x] `tuned-profile-v1` — set and activate a specific tuned profile persistently
 - [x] `process-priority-v1` — renice a running process, launch process with specific nice value
+- [x] `kill-signals-v1` — kill processes with pkill, killall, and kill by PID
 
 ### ch07 — Schedule Future Tasks
 - [x] `at-job-v1` — schedule one-time job with at
@@ -122,6 +126,7 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `extend-lv-v1` — extend existing LV by 300 MB online without data loss
 - [x] `lv-ext4-v1` — create LV, format ext4, mount persistently
 - [x] `stratis-pool-v1` — create Stratis pool + filesystem, fstab with x-systemd.requires (RHEL_VERSIONS="9 10")
+- [x] `extend-lv-ext4-v1` — extend existing LV, resize ext4 filesystem online with resize2fs
 
 ### ch11 — Control Services and Boot Process
 - [x] `reset-root-password-v1` — root locked, candidate resets via rd.break to known value
@@ -129,12 +134,15 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `repair-fstab-v1` — broken /etc/fstab entry prevents boot, fix in emergency shell
 - [x] `service-enable-v1` — ensure a service is enabled and running after reboot
 - [x] `grub-param-v1` — add kernel parameter with grubby
+- [x] `custom-unit-v1` — create Type=oneshot systemd unit file, enable and start it
 
 ### ch12 — Analyze and Store Logs
 - [x] `journald-persistent-v1` — configure journald to persist logs across reboots
 - [x] `journald-size-v1` — set journald Storage=persistent and SystemMaxUse
 - [x] `rsyslog-rule-v1` — add rsyslog rule to forward specific facility to a file
 - [x] `chrony-server-v1` — configure chrony NTP client with specific server
+- [x] `journalctl-v1` — query journal by syslog identifier and by boot, redirect to files
+- [x] `timedatectl-v1` — set system timezone with timedatectl, enable chronyd NTP service
 
 ### ch13 — Manage Networking
 - [x] `hostname-dns-v1` — set static hostname, add /etc/hosts entry

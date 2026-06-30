@@ -8,31 +8,14 @@ The user **{{CTR_USER}}** already exists on the system.
 
 Your task:
 
-1. **Enable linger** for **{{CTR_USER}}** so their systemd user instance starts at boot:
-   ```
-   loginctl enable-linger {{CTR_USER}}
-   ```
+1. **Enable linger** for **{{CTR_USER}}** so their systemd user instance starts at boot.
 
-2. As **{{CTR_USER}}**, create the user systemd directory and generate a service unit:
-   ```
-   su - {{CTR_USER}} -c "mkdir -p ~/.config/systemd/user"
-   su - {{CTR_USER}} -c "podman run -d --name {{CTR_NAME}} \
-       registry.access.redhat.com/ubi9/ubi sleep infinity"
-   su - {{CTR_USER}} -c "podman generate systemd --name {{CTR_NAME}} \
-       --files --new --restart-policy=always \
-       -o ~/.config/systemd/user/"
-   su - {{CTR_USER}} -c "systemctl --user daemon-reload"
-   ```
+2. As **{{CTR_USER}}**, create the user systemd directory, run the container temporarily,
+   generate a systemd service unit from it, and reload the user daemon.
 
-3. Stop and remove the running container (the service will manage it):
-   ```
-   su - {{CTR_USER}} -c "podman stop {{CTR_NAME}} && podman rm {{CTR_NAME}}"
-   ```
+3. Stop and remove the running container (the service will manage it going forward).
 
-4. Enable and start the user service:
-   ```
-   su - {{CTR_USER}} -c "systemctl --user enable --now container-{{CTR_NAME}}.service"
-   ```
+4. Enable and start the user service for **{{CTR_NAME}}**.
 
 5. Verify:
    - `loginctl show-user {{CTR_USER}} | grep Linger` → `Linger=yes`

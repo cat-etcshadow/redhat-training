@@ -21,9 +21,3 @@ Requirements:
    - If `cp` succeeded, print: `Copied <source> → <destination>`
 
 5. Use `set -e` is **not** required — you must explicitly check `$?` after `cp`.
-
-Key concepts:
-- `$?` — exit code of the last executed command
-- `[[ -r "$file" ]]` — test if file is readable
-- `[[ -d "$dest" ]]` — test if destination is a directory
-- Stderr: `echo "error" >&2`

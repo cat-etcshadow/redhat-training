@@ -19,14 +19,3 @@ Requirements:
 3. Propagate the exit code from `systemctl` (if it fails, the script fails too).
 
 4. Exit **0** on success.
-
-```bash
-case "$action" in
-  start)   ... ;;
-  stop)    ... ;;
-  restart) ... ;;
-  status)  ... ;;
-  enable)  ... ;;
-  *)       echo "Unknown action: $action" >&2; exit 3 ;;
-esac
-```

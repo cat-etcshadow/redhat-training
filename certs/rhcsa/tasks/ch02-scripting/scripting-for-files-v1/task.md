@@ -9,14 +9,7 @@ Create an executable script at **{{SCRIPT_PATH}}** that:
 
 3. Loops over every **`.log` file** in the log directory (non-recursive) using
    **command substitution** and compresses each one with `gzip`, saving the
-   compressed file in the archive directory:
-
-   ```bash
-   for f in $(find "$logdir" -maxdepth 1 -name "*.log" -type f); do
-     gzip -c "$f" > "$archivedir/$(basename "$f").gz"
-     echo "Archived: $(basename "$f")"
-   done
-   ```
+   compressed file in the archive directory.
 
 4. If no `.log` files are found, print `No log files found in <dir>` and exit **0**.
 

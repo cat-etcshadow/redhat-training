@@ -503,3 +503,74 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
   filesystem-type volumes cannot be attached to VMs.
 - Launching the VM with `security.secureboot=false` avoids a known `blk_mq_get_tag`
   kernel panic on first boot.
+
+---
+
+## Task library: EX200 exam coverage
+
+**Total tasks: 94 — 84 exam-aligned, 8 extra, 2 borderline**
+
+> **Legend**
+> - `exam` — directly maps to an official EX200 objective
+> - `extra` — good practice, but not an explicit EX200 objective
+> - `borderline` — not in the published objective list, but may appear on the actual exam
+
+| Chapter | Topic | Tasks | Exam | Extra | Task names |
+|---|---|---|---|---|---|
+| ch01-tools | Essential commands | 10 | 10 | — | archive-compress-v1, archive-compress-v2, find-exec-v1, find-files-v1, grep-extended-v1, grep-regex-v1, links-v1, man-docs-v1, scp-transfer-v1, vim-edit-v1 |
+| ch02-scripting | Shell scripting | 9 | 9 | — | scripting-args-v1, scripting-case-v1, scripting-exit-codes-v1, scripting-for-files-v1, scripting-for-list-v1, scripting-functions-v1, scripting-heredoc-v1, scripting-if-v1, scripting-while-v1 |
+| ch03-users | Users and groups | 6 | 6 | — | create-users-v1, create-users-v2, delete-user-v1, group-membership-v1, password-aging-v1, sudo-nopasswd-v1 |
+| ch04-permissions | Permissions | 5 | 5 | — | acl-v1, fix-perms-v1, setgid-dir-v1, sticky-bit-v1, umask-v1 |
+| ch05-selinux | SELinux | 7 | 7 | — | boolean-httpd-v1, boolean-nfs-v1, fix-file-context-v1, fix-file-context-v2, selinux-mode-v1, selinux-port-v1, troubleshoot-audit-v1 |
+| ch06-performance | Process management | 3 | 3 | — | kill-signals-v1, process-priority-v1, tuned-profile-v1 |
+| ch07-scheduling | Scheduling | 4 | 2 | 2 | at-job-v1, cron-job-v1, ~~systemd-timer-v1~~, ~~tmpfiles-v1~~ |
+| ch08-packages | Software management | 5 | 5 | — | dnf-group-v1, dnf-install-v1, dnf-local-rpm-v1, dnf-module-v1, repo-enable-v1 |
+| ch09-storage | Local storage | 7 | 7 | — | add-partition-ext4-v1, add-partition-gpt-v1, add-partition-vfat-v1, add-partition-xfs-v1, persistent-mount-label-v1, persistent-mount-uuid-v1, swap-partition-v1 |
+| ch10-lvm | LVM | 5 | 4 | 1 | create-lv-v1, extend-lv-ext4-v1, extend-lv-v1, lv-ext4-v1, ~~stratis-pool-v1~~ |
+| ch11-boot | Boot process | 6 | 6 | — | boot-target-v1, custom-unit-v1, grub-param-v1, repair-fstab-v1, reset-root-password-v1, service-enable-v1 |
+| ch12-logging | Logging and time | 6 | 4 | 2 | journalctl-v1, journald-persistent-v1, journald-size-v1, timedatectl-v1, ~~chrony-server-v1~~, ~~rsyslog-rule-v1~~ |
+| ch13-networking | Networking | 6 | 4 | 2 | hostname-dns-v1, routing-v1, ssh-key-auth-v1, static-ip-v1, ~~ipv6-addr-v1~~, ~~nmcli-bond-v1~~ |
+| ch14-nfs | NFS / Autofs | 3 | 2 | 1 | autofs-v1, nfs-mount-v1, ~~nfs-export-v1~~ |
+| ch15-firewall | Firewall | 4 | 4 | — | firewall-add-port-v1, firewall-add-service-v1, firewall-rich-rule-v1, firewall-zone-v1 |
+| ch16-containers | Containers | 8 | 6 | 2 | container-env-v1, container-registry-v1, container-service-v1, container-storage-v1, container-user-service-v1, run-container-v1, *container-build-v1*, *container-inspect-v1* |
+| **Total** | | **94** | **84** | **8** | *italic* = borderline |
+
+### Extra tasks (8)
+
+| Task | Why it's extra |
+|---|---|
+| `ch07/systemd-timer-v1` | Systemd timers are not listed in EX200 objectives (only `at` and `cron`) |
+| `ch07/tmpfiles-v1` | tmpfiles.d management is not an EX200 objective |
+| `ch10/stratis-pool-v1` | Stratis is not in the current EX200 exam |
+| `ch12/chrony-server-v1` | EX200 tests NTP client sync, not running your own NTP server |
+| `ch12/rsyslog-rule-v1` | Advanced rsyslog routing rules are not in EX200 objectives |
+| `ch13/ipv6-addr-v1` | IPv6 configuration is not explicitly listed in EX200 objectives |
+| `ch13/nmcli-bond-v1` | Network bonding is not in EX200 networking objectives |
+| `ch14/nfs-export-v1` | EX200 tests NFS client (mount/autofs), not NFS server configuration |
+
+### Borderline tasks (2)
+
+| Task | Note |
+|---|---|
+| `ch16/container-build-v1` | Building from a Containerfile is not in the published objective list but may appear in practice |
+| `ch16/container-inspect-v1` | `podman inspect` is not explicit in objectives but is useful exam knowledge |
+
+---
+
+## Task library: EX294 exam coverage
+
+**Total tasks: 44 — all exam-aligned**
+
+| Chapter | Topic | Tasks | Exam | Extra | Task names |
+|---|---|---|---|---|---|
+| ch01-ansible-basics | Ansible fundamentals | 4 | 4 | — | ad-hoc-command-v1, ansible-cfg-advanced-v1, install-configure-v1, privilege-escalation-v1 |
+| ch03-inventory | Inventory | 4 | 4 | — | group-vars-v1, host-vars-v1, static-inventory-v1, yaml-inventory-v1 |
+| ch04-playbooks | Playbooks | 5 | 5 | — | error-handling-v1, packages-playbook-v1, packages-playbook-v2, service-playbook-v1, yum-repo-playbook-v1 |
+| ch05-variables | Variables and facts | 4 | 4 | — | custom-facts-v1, hwreport-v1, registered-vars-v1, set-fact-v1 |
+| ch06-tasks-control | Task control | 6 | 6 | — | block-rescue-v1, cron-playbook-v1, handlers-v1, include-tasks-v1, issue-file-v1, tags-v1 |
+| ch07-files-jinja2 | Files and templates | 4 | 4 | — | archive-fetch-v1, gen-hosts-v1, lineinfile-v1, template-motd-v1 |
+| ch08-roles | Roles and collections | 6 | 6 | — | collections-posix-v1, create-role-v1, galaxy-requirements-v1, role-defaults-v1, system-roles-selinux-v1, system-roles-timesync-v1 |
+| ch09-vault | Ansible Vault | 4 | 4 | — | create-vault-v1, rekey-vault-v1, use-vault-users-v1, vault-group-vars-v1 |
+| ch10-troubleshooting | Troubleshooting | 4 | 4 | — | check-diff-mode-v1, debug-vars-v1, fix-logic-v1, fix-syntax-v1 |
+| ch11-storage-lvm | Storage automation | 3 | 3 | — | lvm-playbook-v1, lvm-playbook-v2, partition-playbook-v1 |
+| **Total** | | **44** | **44** | **0** | |

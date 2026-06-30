@@ -14,13 +14,3 @@ Create an executable script at **{{SCRIPT_PATH}}** that:
    - If the user **does not exist**, create it with `useradd -M` and print: `CREATED: <name>`
 
 4. Exit **0** when done.
-
-The idiomatic while-read pattern:
-```bash
-while IFS= read -r username; do
-  # process $username
-done < "$input_file"
-```
-
-> `IFS=` prevents stripping leading/trailing whitespace; `-r` prevents backslash
-> interpretation. This is the correct way to read files in bash scripts.

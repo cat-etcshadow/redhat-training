@@ -21,17 +21,3 @@ Your task:
    podman run --rm {{IMAGE_TAG}}
    ```
    The container should print the expected message and exit cleanly.
-
-### Containerfile reference
-
-A Containerfile (also called Dockerfile) is a text file with instructions:
-```
-FROM <base-image>          # starting image
-RUN <command>              # run command during build
-COPY <src> <dest>          # copy files into the image
-ENV KEY=value              # set environment variable
-EXPOSE <port>              # document a port
-CMD ["cmd", "arg"]         # default command when container starts
-ENTRYPOINT ["cmd"]         # fixed entrypoint (CMD provides args)
-LABEL key=value            # metadata
-```

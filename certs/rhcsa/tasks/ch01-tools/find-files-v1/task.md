@@ -8,9 +8,3 @@ Your task:
    - Sort the output alphabetically.
    - Do **not** include directories, symbolic links, or files with other extensions.
 3. Verify: `wc -l {{OUTPUT_FILE}}` shows at least one match.
-
-Useful options:
-```
-find <dir> -type f -name "*.ext"
-find <dir> -type f -name "*.ext" | sort > output.txt
-```

@@ -11,11 +11,3 @@ Your task:
 2. Use `find` with `-exec` to set all **directories** in **{{TARGET_DIR}}**
    (recursively, including **{{TARGET_DIR}}** itself) to mode **{{CORRECT_DIR_MODE}}**.
 3. Verify with `find {{TARGET_DIR}} -perm /o+w` — output should be **empty**.
-
-Useful patterns:
-```
-find <dir> -type f -exec chmod 0644 {} \;
-find <dir> -type d -exec chmod 0755 {} \;
-# or using + instead of \; for efficiency:
-find <dir> -type f -exec chmod 0644 {} +
-```
