@@ -7,4 +7,4 @@ Your task:
    save it as **{{ARCHIVE_DIR}}/backup.{{ARCHIVE_EXT}}**.
 3. Create **{{EXTRACT_DIR}}** if it does not exist.
 4. Extract the archive into **{{EXTRACT_DIR}}**, preserving the directory structure.
-5. Verify the extracted files match the originals.
+5. The extracted files must match the originals.

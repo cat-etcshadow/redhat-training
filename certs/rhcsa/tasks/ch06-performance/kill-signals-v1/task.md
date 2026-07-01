@@ -8,4 +8,4 @@ Your task:
 2. Use **`killall`** to kill all processes named `rhtr_beta`.
 3. Read the PID stored in `/tmp/rhtr_kill_pid` and use **`kill`** to terminate that process.
 
-Verify no processes remain with `pgrep` or `ps aux | grep rhtr`.
+No `rhtr_alpha`, `rhtr_beta`, or the PID from `/tmp/rhtr_kill_pid` may remain running.

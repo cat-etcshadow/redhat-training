@@ -14,4 +14,4 @@ On the control node, set up the Ansible working environment at **{{ANSIBLE_DIR}}
    - `node5` is a member of the **balancers** host group
    - The **prod** group is a child of the **webservers** group
 
-3. Verify: `ansible all -m ping` must succeed for all managed hosts.
+3. Ansible must be able to reach all managed hosts.

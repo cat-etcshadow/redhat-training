@@ -1,6 +1,6 @@
 ## Mount host storage into a container
 
-The image `registry.access.redhat.com/ubi9/ubi` should be available on the system (pre-cached at setup time). If `podman images` shows no images, pull it manually: `podman pull registry.access.redhat.com/ubi9/ubi`.
+The image `registry.access.redhat.com/ubi9/ubi` is available on the system.
 
 Your task:
 
@@ -9,4 +9,4 @@ Your task:
 3. Run a detached container named **datastore** from `registry.access.redhat.com/ubi9/ubi`
    with **/srv/container-data** mounted at **/data** inside the container
    and a keep-alive command (`sleep infinity`).
-4. Verify the container is running and the bind mount is visible with `podman inspect`.
+4. The container must be running with the bind mount visible.

@@ -146,7 +146,8 @@ EOF
     local setup="$task_dir/setup.sh"
     if [[ -f "$setup" ]]; then
       printf "  [%d/%d] %s\n" "$i" "${#selected_tasks[@]}" "$(task_short_name "$task_dir")"
-      _run_task_script "${VM_NAMES[0]}" "$setup" "$task_dir"
+      _run_task_script "${VM_NAMES[0]}" "$setup" "$task_dir" \
+        || die "Setup failed for $(task_short_name "$task_dir") — environment not ready for this task"
     fi
     (( i++ ))
   done
@@ -277,14 +278,21 @@ cmd_reset() {
   info "Re-applying task setups..."
   local _reset_tasks=()
   mapfile -t _reset_tasks < "$STATE_DIR/active-tasks.txt"
-  local _rt
+  local _rt _reset_failed=()
   for _rt in "${_reset_tasks[@]}"; do
     local setup="$_rt/setup.sh"
-    [[ -f "$setup" ]] && _run_task_script "${VM_NAMES[0]}" "$setup" "$_rt"
+    if [[ -f "$setup" ]]; then
+      _run_task_script "${VM_NAMES[0]}" "$setup" "$_rt" \
+        || _reset_failed+=("$(task_short_name "$_rt")")
+    fi
   done
 
   # Clear previous grades so the candidate starts fresh
   : > "$STATE_DIR/grades.txt"
+
+  if [[ ${#_reset_failed[@]} -gt 0 ]]; then
+    warn "Setup re-apply failed for: ${_reset_failed[*]} — these tasks' environments may be broken"
+  fi
   ok "Reset complete."
 }
 
@@ -403,7 +411,16 @@ _generate_task_params() {
     local params_sh="$_pt/params.sh"
     [[ -f "$params_sh" ]] || continue
     local slug; slug=$(task_slug "$_pt")
-    bash "$params_sh" > "$STATE_DIR/task-params/${slug}.env"
+    # params.sh echoes raw KEY=VALUE pairs, unquoted. Values with spaces
+    # (e.g. "Running OK") would otherwise break when this file is spliced
+    # into a setup/grade script as literal shell assignments — quote each
+    # value here so it round-trips safely either way.
+    local key val
+    : > "$STATE_DIR/task-params/${slug}.env"
+    while IFS='=' read -r key val; do
+      [[ -z "$key" ]] && continue
+      printf '%s="%s"\n' "$key" "${val//\"/\\\"}" >> "$STATE_DIR/task-params/${slug}.env"
+    done < <(bash "$params_sh")
   done
 }
 

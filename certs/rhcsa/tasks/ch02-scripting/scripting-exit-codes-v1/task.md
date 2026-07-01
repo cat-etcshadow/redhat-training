@@ -19,5 +19,3 @@ Requirements:
 4. After the `cp` command, check `$?` (the exit code of the last command):
    - If `cp` failed, print error to stderr and exit **4**
    - If `cp` succeeded, print: `Copied <source> → <destination>`
-
-5. Use `set -e` is **not** required — you must explicitly check `$?` after `cp`.

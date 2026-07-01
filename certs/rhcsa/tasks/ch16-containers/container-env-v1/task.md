@@ -8,6 +8,3 @@ Your task:
    - Environment variable **{{ENV_KEY}}={{ENV_VAL}}**
    - Port mapping: host port **{{HOST_PORT}}** → container port **8080**
    - A command that keeps it running: `sleep infinity`
-2. Verify:
-   - `podman ps` shows **{{CONTAINER_NAME}}** running
-   - The container has the correct environment variable set

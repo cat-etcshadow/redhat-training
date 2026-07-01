@@ -7,4 +7,4 @@ Your task:
 2. Write the full path of each matching file to **{{OUTPUT_FILE}}**, one path per line.
    - Sort the output alphabetically.
    - Do **not** include directories, symbolic links, or files with other extensions.
-3. Verify: `wc -l {{OUTPUT_FILE}}` shows at least one match.
+3. **{{OUTPUT_FILE}}** must contain at least one match.

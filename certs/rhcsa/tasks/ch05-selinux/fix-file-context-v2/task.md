@@ -9,10 +9,10 @@ is denying access — the directory has the wrong context type.
 Your task:
 
 1. Identify the correct SELinux context type that vsftpd requires for its
-   content directories (`public_content_t`).
+   content directories.
 
 2. Configure a **persistent** policy so that **/srv/ftp/pub** and all content
-   beneath it carries the `public_content_t` context.
+   beneath it carries the correct context.
 
 3. Apply the context to the existing files.
 

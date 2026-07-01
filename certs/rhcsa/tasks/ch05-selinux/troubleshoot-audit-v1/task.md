@@ -6,10 +6,8 @@ the Unix permissions are correct and SELinux is in Enforcing mode.
 
 Your task:
 
-1. Examine the SELinux audit log to identify the denial. Use `ausearch`
-   or `sealert` to find the relevant AVC denial for httpd CGI execution.
+1. Examine the SELinux audit log to identify the denial.
 
-2. Identify and enable the SELinux boolean that controls CGI script
-   execution for httpd — persistently.
+2. Enable the relevant SELinux boolean — persistently.
 
 3. Confirm httpd is running and SELinux remains in **Enforcing** mode.

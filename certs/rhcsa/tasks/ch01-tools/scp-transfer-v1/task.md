@@ -8,6 +8,5 @@ Your task:
 
 2. Use **rsync** to synchronize the entire **{{SRC_DIR}}** directory to **{{RSYNC_DEST}}**.
 
-3. Verify:
-   - `{{SCP_DEST}}/payload.tar.gz` exists and matches the source
-   - `{{RSYNC_DEST}}/` contains the same files as `{{SRC_DIR}}/`
+3. **{{SCP_DEST}}/payload.tar.gz** must match the source, and **{{RSYNC_DEST}}/**
+   must contain the same files as **{{SRC_DIR}}/**.

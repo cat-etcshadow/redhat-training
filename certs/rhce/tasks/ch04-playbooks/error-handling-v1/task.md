@@ -17,8 +17,3 @@ Additional requirements:
 - Use `become: true`
 - The playbook must pass `--syntax-check`
 - All three sections (`block:`, `rescue:`, `always:`) must be present
-
-Verify:
-```
-ansible-playbook --syntax-check {{PLAYBOOK_FILE}}
-```

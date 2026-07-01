@@ -8,9 +8,4 @@ Create a YAML-format inventory file at **{{YAML_INVENTORY_FILE}}** that replicat
 - Group **balancers**: contains `node5`
 - Group **webservers**: parent group with children **prod** and **balancers**
 
-Verify the inventory parses correctly:
-```
-ansible-inventory -i {{YAML_INVENTORY_FILE}} --graph
-```
-
-All five nodes (node1–node5) and all groups must appear in the graph output.
+All five nodes (node1–node5) and all groups must appear in the inventory.

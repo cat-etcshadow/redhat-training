@@ -1,7 +1,6 @@
 ## Configure a static IP address with nmcli
 
-The system currently uses DHCP on its primary NIC (you can find the
-connection name with `nmcli con show`).
+The system currently uses DHCP on its primary NIC.
 
 Your task:
 
@@ -10,6 +9,6 @@ Your task:
 3. Set the default gateway: **10.0.0.1**
 4. Set DNS servers: **8.8.8.8** and **1.1.1.1**
 5. Set the connection to **manual** (not DHCP) and **autoconnect yes**.
-6. Bring the connection up and verify with `ip addr`.
+6. Bring the connection up.
 
 **Important**: Do not modify the loopback interface.

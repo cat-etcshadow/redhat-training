@@ -14,8 +14,3 @@ On the control node, configure per-host variables using the `host_vars` director
 4. Create a playbook **{{PLAYBOOK_FILE}}** that:
    - Targets the **dev** and **test** groups (`hosts: dev:test`)
    - Uses the `ansible.builtin.debug` module to print the `http_port` variable for each host
-
-Verify Ansible picks up the variables:
-```
-ansible -i {{INVENTORY_FILE}} dev:test -m debug -a "var=http_port"
-```

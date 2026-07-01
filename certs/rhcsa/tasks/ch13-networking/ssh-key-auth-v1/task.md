@@ -16,7 +16,4 @@ Your task:
    - `AuthorizedKeysFile .ssh/authorized_keys`
    Reload sshd after making changes.
 
-5. Verify: the following must succeed **without a password prompt**:
-   ```
-   su - {{SSH_USER}} -c "ssh -o StrictHostKeyChecking=no -i /home/{{SSH_USER}}/.ssh/id_rsa {{SSH_USER}}@localhost whoami"
-   ```
+5. **{{SSH_USER}}** must be able to SSH to localhost **without a password prompt**.

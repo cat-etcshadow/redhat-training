@@ -14,15 +14,3 @@ Create an executable shell script at **{{SCRIPT_PATH}}** that:
    - Exit with code **2**
 
 The script must be **executable** (`chmod +x`).
-
-Example output:
-```
-$ check_user.sh root
-User root exists with UID 0
-
-$ check_user.sh nobody123
-User nobody123 does not exist
-
-$ check_user.sh
-Usage: check_user.sh <username>
-```

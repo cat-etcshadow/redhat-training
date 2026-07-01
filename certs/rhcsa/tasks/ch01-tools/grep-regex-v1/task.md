@@ -11,7 +11,4 @@ Your task:
    (a pattern like `192.168.1.10` — four groups of 1-3 digits separated by dots).
    Write matching lines to **{{IP_OUTPUT}}**.
 
-3. Verify:
-   - `{{ERROR_OUTPUT}}` is non-empty
-   - `{{IP_OUTPUT}}` is non-empty
-   - Both files exist
+3. Both **{{ERROR_OUTPUT}}** and **{{IP_OUTPUT}}** must exist and be non-empty.

@@ -1,8 +1,7 @@
 ## Allow httpd on a non-standard port via SELinux
 
 Apache `httpd` needs to listen on port **{{HTTP_PORT}}**, which is not in the default
-SELinux `http_port_t` definition. Changing the `Listen` directive alone is not enough
-while SELinux is enforcing.
+SELinux `http_port_t` definition.
 
 Your task:
 

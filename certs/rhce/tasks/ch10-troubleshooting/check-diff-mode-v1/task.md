@@ -10,19 +10,8 @@ Create a playbook for **dev** hosts that:
 
 ### Step 2: Create the check script {{ANSIBLE_DIR}}/check-mode.sh
 
-Create a shell script that runs the playbook in check + diff mode:
-```bash
-#!/usr/bin/env bash
-ansible-playbook --check --diff -i /home/student/ansible/inventory {{PLAYBOOK_FILE}}
-```
-
-The script must also run a syntax check:
-```bash
-ansible-playbook --syntax-check -i /home/student/ansible/inventory {{PLAYBOOK_FILE}}
-```
-
-Make the script executable with `chmod +x`.
+Create an executable shell script that runs the playbook with both `--check`
+and `--diff` flags.
 
 Requirements:
-- Both `--check` and `--diff` flags must appear in `check-mode.sh`
 - Playbook must pass `--syntax-check`

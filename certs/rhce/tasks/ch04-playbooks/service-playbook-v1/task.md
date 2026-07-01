@@ -16,8 +16,3 @@ Requirements:
 - Use `become: true`
 - The playbook must pass `--syntax-check`
 - All three modules must be present
-
-Verify:
-```
-ansible-playbook --syntax-check {{PLAYBOOK_FILE}}
-```

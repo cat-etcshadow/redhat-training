@@ -14,5 +14,3 @@ Additional requirements:
 - The **prod** group must be a child of **webservers**.
 - The **balancers** group must also be a child of **webservers**.
 - Each host should appear only once in the file.
-
-Verify with `ansible-inventory --graph` and confirm the hierarchy is correct.

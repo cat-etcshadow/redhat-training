@@ -14,13 +14,3 @@ Create an executable script at **{{SCRIPT_PATH}}** that:
 4. Print one line per created directory: `Created: <full-path>`
 
 5. Exit **0** on success.
-
-Example:
-```
-$ create_dirs.sh /srv/app
-Created: /srv/app/logs
-Created: /srv/app/data
-Created: /srv/app/config
-Created: /srv/app/backups
-Created: /srv/app/tmp
-```

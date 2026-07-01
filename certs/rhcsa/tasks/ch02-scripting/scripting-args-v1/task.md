@@ -19,7 +19,6 @@ Requirements:
    ```
    <original-name>.<YYYYMMDD-HHMMSS>
    ```
-   Use `$(date +%Y%m%d-%H%M%S)` for the timestamp.
 
 5. Print: `Backed up <source> to <destination-path>`
 

@@ -8,7 +8,6 @@ Your task:
 1. Identify the broken `/etc/fstab` entry (device or UUID does not exist
    on the system).
 2. Remove or correct it so that `mount -a` completes without errors.
-3. Verify with `mount -a` that no errors are produced.
 
 Do not disable `systemd-fstab-generator` or comment out all of `/etc/fstab`.
 Fix only the broken entry.
