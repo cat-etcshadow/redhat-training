@@ -7,4 +7,3 @@ pkill -f "dd if=/dev/zero" 2>/dev/null || true
 bash -c 'while true; do echo sha256_worker | sha256sum > /dev/null; done' </dev/null >/dev/null 2>&1 &
 WORKER_PID=$!
 disown $WORKER_PID
-echo "sha256_worker PID: $WORKER_PID"
