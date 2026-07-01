@@ -64,9 +64,10 @@ grade_all_tasks() {
 
     _print_task_row "$task_num" "$result" "$(task_short_name "$task_dir")" "$POINTS" "$pts_earned"
 
-    # Show diagnostics on failure in train mode
-    if [[ $result == "FAIL" && "${MODE:-exam}" == "train" && -n "${output:-}" ]]; then
-      echo -e "   ${C_DIM}$output${C_RESET}"
+    # Show diagnostics and solution on failure in train mode
+    if [[ $result == "FAIL" && "${MODE:-exam}" == "train" ]]; then
+      [[ -n "${output:-}" ]] && echo -e "   ${C_DIM}$output${C_RESET}"
+      _show_solution "$task_dir"
     fi
 
     (( total_pts  += POINTS ))     || true
@@ -85,6 +86,21 @@ _print_task_row() {
 
   printf "  ${colour}[%-4s]${C_RESET} %2d. %-45s %3d pts\n" \
     "$result" "$num" "$name" "$max_pts"
+}
+
+# Print a failed task's solution.sh, if one exists (train mode only — called
+# from grade_all_tasks after diagnostics, never in exam mode).
+_show_solution() {
+  local task_dir="$1"
+  local solution="$task_dir/solution.sh"
+  [[ -f "$solution" ]] || return 0
+
+  echo -e "   ${C_YELLOW}Solution — $(task_short_name "$task_dir")${C_RESET}"
+  local line
+  while IFS= read -r line; do
+    echo -e "   ${C_DIM}$line${C_RESET}"
+  done < "$solution"
+  echo ""
 }
 
 print_score() {
