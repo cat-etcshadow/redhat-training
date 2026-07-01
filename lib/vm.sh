@@ -97,13 +97,17 @@ vm_exec_script() {
   local remote="/tmp/rhtr-$$.sh"
   local rc=0
   local attempt
+  # Setup scripts (passwd, dnf, podman pull, etc.) are noisy on stdout/stderr.
+  # Capture it and only surface it when the script actually fails, so a clean
+  # run shows just the task progress line.
+  local out; out=$(mktemp)
 
   for attempt in 1 2 3; do
     # File push uses SFTP, which the incus agent initialises slightly after the
     # exec socket.  Retry the push on failure (e.g. HTTP-500 on first launch)
     # rather than letting set -e abort the whole session setup.
     if ! incus file push --mode 0700 "$script" "${name}${remote}" 2>/dev/null; then
-      [[ $attempt -lt 3 ]] || { warn "File push failed after 3 attempts: $script"; return 1; }
+      [[ $attempt -lt 3 ]] || { warn "File push failed after 3 attempts: $script"; rm -f "$out"; return 1; }
       warn "SFTP push failed (attempt $attempt/3) — waiting 5 s for agent SFTP..."
       sleep 5
       continue
@@ -111,15 +115,25 @@ vm_exec_script() {
     rc=0
     # </dev/null prevents incus exec from consuming the caller's stdin (e.g. a
     # while-loop file descriptor), which would swallow remaining loop iterations.
-    incus exec "$name" -- bash "$remote" </dev/null || rc=$?
+    incus exec "$name" -- bash "$remote" </dev/null &>"$out" || rc=$?
     incus exec "$name" -- rm -f "$remote" </dev/null &>/dev/null || true
-    [[ $rc -eq 0 ]] && return 0
+    if [[ $rc -eq 0 ]]; then
+      rm -f "$out"
+      return 0
+    fi
     # If the agent still responds, the script itself failed — don't retry.
-    incus exec "$name" -- true </dev/null &>/dev/null && return $rc
+    if incus exec "$name" -- true </dev/null &>/dev/null; then
+      warn "Setup script failed (rc=$rc): $script"
+      cat "$out" >&2
+      rm -f "$out"
+      return $rc
+    fi
     [[ $attempt -lt 3 ]] || break
     warn "VM agent lost during exec (attempt $attempt/3) — reconnecting..."
     vm_wait_ready "$name"
   done
+  cat "$out" >&2
+  rm -f "$out"
   return $rc
 }
 
