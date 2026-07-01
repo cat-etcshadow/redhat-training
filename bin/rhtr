@@ -14,6 +14,7 @@ source "$RHTR_DIR/lib/report.sh"
 source "$RHTR_DIR/lib/progress.sh"
 source "$RHTR_DIR/lib/list.sh"
 source "$RHTR_DIR/lib/exam.sh"
+source "$RHTR_DIR/lib/history.sh"
 
 # ── usage ─────────────────────────────────────────────────────────────────────
 usage() {
@@ -36,6 +37,9 @@ usage() {
     destroy
     status
     tasks     (show tasks for active session or last session)
+    save      [<label>]   (save last graded exam's per-topic scores to history)
+    remember  [<label>]   (alias for save)
+    overview              (best/last score per topic across saved exams)
 
   Discovery commands (no VM required):
     list-topics
@@ -85,6 +89,9 @@ case "$CMD" in
   destroy)      cmd_destroy ;;
   status)       cmd_status ;;
   tasks)        cmd_tasks ;;
+  save)         cmd_save "$@" ;;
+  remember)     cmd_save "$@" ;;
+  overview)     cmd_overview ;;
 
   # Discovery
   list-topics)   cmd_list_topics ;;
