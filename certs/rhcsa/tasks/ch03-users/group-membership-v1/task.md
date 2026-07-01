@@ -8,5 +8,3 @@ Your task:
    **{{TARGET_USER}}'s primary group** to **{{NEW_PRIMARY}}**.
 4. Add **{{TARGET_USER}}** as a supplementary member of **{{SUPP_GROUP1}}** and **{{SUPP_GROUP2}}**
    (do not overwrite existing supplementary groups).
-5. Verify with `id {{TARGET_USER}}` — the output should show `{{NEW_PRIMARY}}` as the primary group
-   and both supplementary groups listed.

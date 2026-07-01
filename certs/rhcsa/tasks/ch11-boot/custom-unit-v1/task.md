@@ -13,5 +13,3 @@ Your task:
 2. Reload the systemd daemon so it recognises the new unit.
 
 3. Enable and start the unit.
-
-4. Verify it is active with `systemctl status {{UNIT_NAME}}.service`.

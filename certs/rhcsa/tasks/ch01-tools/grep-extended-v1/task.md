@@ -11,6 +11,5 @@ Your task:
 2. From **{{OUTPUT_USERS}}**, extract **only the usernames** (field 1, colon-delimited)
    and write them to **{{OUTPUT_NAMES}}**, one name per line.
 
-3. Verify:
-   - Each line in **{{OUTPUT_USERS}}** ends with `/bin/{{TARGET_SHELL}}`
-   - **{{OUTPUT_NAMES}}** contains only plain usernames (no colons)
+3. Each line in **{{OUTPUT_USERS}}** must end with `/bin/{{TARGET_SHELL}}`, and
+   **{{OUTPUT_NAMES}}** must contain only plain usernames (no colons).

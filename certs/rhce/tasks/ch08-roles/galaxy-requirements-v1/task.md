@@ -12,9 +12,4 @@ Requirements:
 - Each entry uses `src:` (the GitHub URL or galaxy name) and `name:` (alias)
 - The file must use the correct `requirements.yml` format (list under no top-level key, or under `roles:`)
 
-After creating the file, install the roles with:
-```
-ansible-galaxy install -r roles/requirements.yml -p roles/
-```
-
-Verify: both `roles/apache` and `roles/mysql` directories exist.
+Install the roles from the requirements file into **{{ROLES_DIR}}**.

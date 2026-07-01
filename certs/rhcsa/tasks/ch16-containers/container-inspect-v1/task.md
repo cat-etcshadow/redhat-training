@@ -14,6 +14,3 @@ Your task:
    - The image **ID** (first 12 chars)
    - The **entrypoint** or **Cmd** (what runs by default)
    - The **OS** and **architecture**
-
-5. Verify: `{{REPORT_FILE}}` contains JSON from `podman inspect` and
-   skopeo output with `Architecture` or `Digest` fields.

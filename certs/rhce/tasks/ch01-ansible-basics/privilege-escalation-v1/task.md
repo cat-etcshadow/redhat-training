@@ -14,8 +14,3 @@ Requirements:
 - The playbook must pass `--syntax-check`
 - Both `become: true` (play level) and `become_user: {{TARGET_USER}}` (task level) must be present
 - `{{TARGET_USER}}` must be referenced as the target user
-
-Verify:
-```
-ansible-playbook --syntax-check {{PLAYBOOK_FILE}}
-```

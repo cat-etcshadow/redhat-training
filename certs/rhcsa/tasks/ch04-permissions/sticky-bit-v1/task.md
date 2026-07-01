@@ -9,4 +9,3 @@ Your task:
 5. Apply the **sticky bit** so that only the file owner (or root) can delete files inside.
 6. Set permissions so the owning group has read/write/execute access,
    and others have no access (mode `3770`).
-7. Verify: `ls -ld {{SHARED_DIR}}` should show `drwxrws--T` (or `drwxrws--T`) with group `{{SHARED_GROUP}}`.

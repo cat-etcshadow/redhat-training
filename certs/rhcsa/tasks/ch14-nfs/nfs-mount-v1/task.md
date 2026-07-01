@@ -10,6 +10,3 @@ Your task:
    **/mnt/nfsshare** persistently in `/etc/fstab` with options
    `nfsvers=4,soft,timeo=30`.
 4. Run `mount -a` to apply the fstab entry.
-
-**Note**: In the exam environment the NFS server may not actually be
-reachable — the grader checks the `/etc/fstab` configuration only.

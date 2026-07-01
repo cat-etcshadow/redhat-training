@@ -10,4 +10,4 @@ Your task:
    **{{TARGET_DIR}}** (recursively) to mode **{{CORRECT_FILE_MODE}}**.
 2. Use `find` with `-exec` to set all **directories** in **{{TARGET_DIR}}**
    (recursively, including **{{TARGET_DIR}}** itself) to mode **{{CORRECT_DIR_MODE}}**.
-3. Verify with `find {{TARGET_DIR}} -perm /o+w` — output should be **empty**.
+3. No files or directories under **{{TARGET_DIR}}** may remain world-writable.

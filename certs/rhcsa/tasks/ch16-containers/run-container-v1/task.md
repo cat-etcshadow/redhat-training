@@ -1,6 +1,6 @@
 ## Run a container from a local image and inspect it
 
-The image `registry.access.redhat.com/ubi9/ubi` should be available on the system (pre-cached at setup time). If `podman images` shows no images, you will need to pull it manually: `podman pull registry.access.redhat.com/ubi9/ubi`.
+The image `registry.access.redhat.com/ubi9/ubi` is available on the system.
 
 Your task:
 
@@ -9,7 +9,4 @@ Your task:
    - Port **8080** on the host mapped to port **80** in the container
    - Environment variable **APP_ENV=production**
    - A keep-alive command: `sleep infinity`
-3. Verify the container is running with `podman ps`.
-4. Run the container as a **rootless** container (as your regular user).
-
-**For this lab**: running as root is acceptable if no non-root user is available.
+3. Run the container as a **rootless** container.

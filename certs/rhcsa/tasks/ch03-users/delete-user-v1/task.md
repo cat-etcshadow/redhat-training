@@ -4,7 +4,7 @@ The user **{{DEL_USER}}** is a former employee whose account must be removed.
 
 Your task:
 
-1. **Lock** the account first (good practice before deletion).
+1. **Lock** the account.
 
 2. **Delete** the user and their home directory.
 
@@ -12,7 +12,5 @@ Your task:
 
 4. **Remove** any sudoers drop-in for the user.
 
-5. Verify:
-   - `id {{DEL_USER}}` should return a non-zero exit code (user not found)
-   - `/home/{{DEL_USER}}` should not exist
-   - `getent group {{DEL_GROUP}}` should return nothing
+5. After cleanup, **{{DEL_USER}}** must no longer exist, `/home/{{DEL_USER}}`
+   must be gone, and the group **{{DEL_GROUP}}** must no longer exist.

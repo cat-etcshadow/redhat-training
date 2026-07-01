@@ -5,11 +5,9 @@ Your task:
 1. Check the current SELinux mode with `getenforce` and `sestatus`. Write the
    output of `sestatus` to **{{OUTPUT_FILE}}**.
 
-2. Temporarily set SELinux to **permissive** mode (no reboot needed).
-   Verify: `getenforce` should output `Permissive`.
+2. Temporarily set SELinux to **permissive** mode.
 
 3. Return SELinux to **enforcing** mode.
-   Verify: `getenforce` should output `Enforcing`.
 
 4. Make **enforcing** the **persistent default** (survives reboots) by editing
    `/etc/selinux/config`:
@@ -17,6 +15,3 @@ Your task:
 
 5. List the SELinux context of `/etc/passwd` and `/usr/sbin/sshd` and append
    this output to **{{OUTPUT_FILE}}**.
-
-The grader checks that SELinux is currently **Enforcing**, the config file is
-set to `enforcing`, and **{{OUTPUT_FILE}}** contains sestatus output and file contexts.

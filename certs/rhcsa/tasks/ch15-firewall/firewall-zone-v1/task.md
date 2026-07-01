@@ -6,4 +6,3 @@ Your task:
 2. Assign the source network **{{ZONE_SOURCE}}** to this zone permanently.
 3. Add services **{{ZONE_SVC1}}** and **{{ZONE_SVC2}}** to the zone permanently.
 4. Reload firewalld to activate the changes.
-5. Verify: `firewall-cmd --zone={{ZONE_NAME}} --list-all` should show the source and both services.

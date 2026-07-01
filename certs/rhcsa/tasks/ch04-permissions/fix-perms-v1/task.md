@@ -12,4 +12,4 @@ manage content. Fix the permissions.
 | All **files** inside | root | {{WEB_GROUP}} | `0664` |
 | All **subdirs** inside | root | {{WEB_GROUP}} | `2775` |
 
-Verify: users in **{{WEB_GROUP}}** can read and write files; `ls -ld {{WEB_ROOT}}` shows `drwxrwsr-x` and group **{{WEB_GROUP}}**.
+Users in **{{WEB_GROUP}}** must be able to read and write files under **{{WEB_ROOT}}**.

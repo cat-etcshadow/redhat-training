@@ -5,4 +5,3 @@ Your task:
 1. Install the **postfix** service if not already installed.
 2. Enable **postfix** to start automatically at boot.
 3. Start the **postfix** service immediately.
-4. Verify that postfix is both **active** and **enabled**.

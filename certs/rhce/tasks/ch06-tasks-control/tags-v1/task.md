@@ -13,9 +13,3 @@ Additional requirements:
 - At least one task must also have the `always` tag (so it always runs even with `--tags`)
 - The playbook must pass `--syntax-check`
 - At least 3 different tag names must be present
-
-Verify selective execution:
-```
-ansible-playbook --syntax-check {{PLAYBOOK_FILE}}
-ansible-playbook --list-tags {{PLAYBOOK_FILE}}
-```

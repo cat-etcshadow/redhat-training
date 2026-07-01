@@ -13,4 +13,3 @@ Requirements:
 - Each group must have its own YAML file under `group_vars/<groupname>.yml`
 - The `all` group file sets `ntp_server`
 - All files must be valid YAML
-- Verify with: `ansible-inventory -i inventory --host node1` and confirm `env` and `ntp_server` appear

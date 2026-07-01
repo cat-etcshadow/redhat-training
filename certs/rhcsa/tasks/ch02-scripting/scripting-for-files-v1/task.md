@@ -14,11 +14,3 @@ Create an executable script at **{{SCRIPT_PATH}}** that:
 4. If no `.log` files are found, print `No log files found in <dir>` and exit **0**.
 
 5. Exit **0** on success.
-
-Example:
-```
-$ archive_logs.sh /opt/rhtr_scriptlogs /opt/rhtr_scriptarchive
-Archived: app.log
-Archived: access.log
-Archived: error.log
-```

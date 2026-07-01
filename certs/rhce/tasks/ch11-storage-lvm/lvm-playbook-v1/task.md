@@ -21,8 +21,3 @@ Use `block`/`rescue` structure:
 - Use `become: true`
 - Do **NOT** mount the logical volume
 - The playbook must pass `--syntax-check`
-
-Verify:
-```
-ansible-playbook --syntax-check {{PLAYBOOK_FILE}}
-```

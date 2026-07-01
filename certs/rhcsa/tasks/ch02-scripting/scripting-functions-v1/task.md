@@ -2,35 +2,13 @@
 
 Create an executable script at **{{SCRIPT_PATH}}** that generates a disk usage report.
 
-The script must define and use the following **functions**:
+The script must define and use **functions**, including one for printing a
+report header (with the current date) and one for checking a single mount
+point (reporting whether it's mounted, and its usage if so).
 
-### `print_header`
-Prints a header line:
-```
-=== Disk Usage Report: <date> ===
-```
-where `<date>` is the current date in `%Y-%m-%d` format.
-
-### `check_mountpoint <path>`
-Takes one argument (a mount point path).
-- If the path is mounted, prints: `OK   <path>  <used>/<size> (<percent>%)`
-  (use `df -h "$path"` to get figures)
-- If the path is not mounted or doesn't exist, prints: `WARN <path>  NOT MOUNTED`
-
-### `main`
-Calls `print_header`, then calls `check_mountpoint` for: `/`, `/boot`, `/tmp`, `/var`
-
-Script must:
-- Accept an optional argument `--output <file>` that redirects all output to the file
-  instead of stdout. If `--output` is used, also exit 0 silently.
+The script must:
+- Check `/`, `/boot`, `/tmp`, and `/var`.
+- Report each mount point's status as OK or WARN.
+- Accept an optional argument `--output <file>` that redirects all output to
+  the file instead of stdout, exiting 0 silently.
 - Be executable.
-
-Example:
-```
-$ disk_report.sh
-=== Disk Usage Report: 2025-03-15 ===
-OK   /       8.2G/20G (42%)
-OK   /boot   150M/1G (15%)
-WARN /tmp    NOT MOUNTED
-WARN /var    NOT MOUNTED
-```
