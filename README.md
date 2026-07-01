@@ -508,7 +508,7 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
 
 ## Task library: EX200 exam coverage
 
-**Total tasks: 94 — 84 exam-aligned, 8 extra, 2 borderline**
+**Total tasks: 142 — 119 exam-aligned, 21 extra, 2 borderline**
 
 > **Legend**
 > - `exam` — directly maps to an official EX200 objective
@@ -517,36 +517,49 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
 
 | Chapter | Topic | Tasks | Exam | Extra | Task names |
 |---|---|---|---|---|---|
-| ch01-tools | Essential commands | 10 | 10 | — | archive-compress-v1, archive-compress-v2, find-exec-v1, find-files-v1, grep-extended-v1, grep-regex-v1, links-v1, man-docs-v1, scp-transfer-v1, vim-edit-v1 |
-| ch02-scripting | Shell scripting | 9 | 9 | — | scripting-args-v1, scripting-case-v1, scripting-exit-codes-v1, scripting-for-files-v1, scripting-for-list-v1, scripting-functions-v1, scripting-heredoc-v1, scripting-if-v1, scripting-while-v1 |
-| ch03-users | Users and groups | 6 | 6 | — | create-users-v1, create-users-v2, delete-user-v1, group-membership-v1, password-aging-v1, sudo-nopasswd-v1 |
-| ch04-permissions | Permissions | 5 | 5 | — | acl-v1, fix-perms-v1, setgid-dir-v1, sticky-bit-v1, umask-v1 |
-| ch05-selinux | SELinux | 7 | 7 | — | boolean-httpd-v1, boolean-nfs-v1, fix-file-context-v1, fix-file-context-v2, selinux-mode-v1, selinux-port-v1, troubleshoot-audit-v1 |
-| ch06-performance | Process management | 3 | 3 | — | kill-signals-v1, process-priority-v1, tuned-profile-v1 |
-| ch07-scheduling | Scheduling | 4 | 2 | 2 | at-job-v1, cron-job-v1, ~~systemd-timer-v1~~, ~~tmpfiles-v1~~ |
-| ch08-packages | Software management | 5 | 5 | — | dnf-group-v1, dnf-install-v1, dnf-local-rpm-v1, dnf-module-v1, repo-enable-v1 |
-| ch09-storage | Local storage | 7 | 7 | — | add-partition-ext4-v1, add-partition-gpt-v1, add-partition-vfat-v1, add-partition-xfs-v1, persistent-mount-label-v1, persistent-mount-uuid-v1, swap-partition-v1 |
-| ch10-lvm | LVM | 5 | 4 | 1 | create-lv-v1, extend-lv-ext4-v1, extend-lv-v1, lv-ext4-v1, ~~stratis-pool-v1~~ |
-| ch11-boot | Boot process | 6 | 6 | — | boot-target-v1, custom-unit-v1, grub-param-v1, repair-fstab-v1, reset-root-password-v1, service-enable-v1 |
-| ch12-logging | Logging and time | 6 | 4 | 2 | journalctl-v1, journald-persistent-v1, journald-size-v1, timedatectl-v1, ~~chrony-server-v1~~, ~~rsyslog-rule-v1~~ |
-| ch13-networking | Networking | 6 | 4 | 2 | hostname-dns-v1, routing-v1, ssh-key-auth-v1, static-ip-v1, ~~ipv6-addr-v1~~, ~~nmcli-bond-v1~~ |
-| ch14-nfs | NFS / Autofs | 3 | 2 | 1 | autofs-v1, nfs-mount-v1, ~~nfs-export-v1~~ |
-| ch15-firewall | Firewall | 4 | 4 | — | firewall-add-port-v1, firewall-add-service-v1, firewall-rich-rule-v1, firewall-zone-v1 |
-| ch16-containers | Containers | 8 | 6 | 2 | container-env-v1, container-registry-v1, container-service-v1, container-storage-v1, container-user-service-v1, run-container-v1, *container-build-v1*, *container-inspect-v1* |
-| **Total** | | **94** | **84** | **8** | *italic* = borderline |
+| ch01-tools | Essential commands | 13 | 13 | — | archive-compress-v1, archive-compress-v2, find-exec-v1, find-files-v1, grep-extended-v1, grep-regex-v1, io-redirect-v1, links-v1, man-docs-v1, scp-transfer-v1, sort-uniq-v1, tar-selective-v1, vim-edit-v1 |
+| ch02-scripting | Shell scripting | 12 | 12 | — | scripting-args-v1, scripting-arrays-v1, scripting-case-v1, scripting-defaults-v1, scripting-exit-codes-v1, scripting-for-files-v1, scripting-for-list-v1, scripting-functions-v1, scripting-heredoc-v1, scripting-if-v1, scripting-until-v1, scripting-while-v1 |
+| ch03-users | Users and groups | 9 | 9 | — | create-users-v1, create-users-v2, delete-user-v1, group-batch-membership-v1, group-membership-v1, password-aging-v1, sudo-nopasswd-v1, useradd-custom-v1, usermod-lock-v1 |
+| ch04-permissions | Permissions | 8 | 8 | — | acl-mask-v1, acl-v1, fix-perms-v1, numeric-perms-v1, setgid-dir-v1, sticky-bit-v1, suid-sgid-audit-v1, umask-v1 |
+| ch05-selinux | SELinux | 10 | 10 | — | boolean-httpd-v1, boolean-nfs-v1, fix-file-context-v1, fix-file-context-v2, selinux-boolean-set-v1, selinux-mode-v1, selinux-port-ssh-v1, selinux-port-v1, selinux-restorecon-v1, troubleshoot-audit-v1 |
+| ch06-performance | Process management | 6 | 6 | — | job-control-v1, kill-signals-v1, nice-launch-v1, process-priority-v1, ps-filter-report-v1, tuned-profile-v1 |
+| ch07-scheduling | Scheduling | 7 | 5 | 2 | at-job-v1, at-manage-v1, cron-env-v1, cron-job-v1, cron-system-v1, ~~systemd-timer-v1~~, ~~tmpfiles-v1~~ |
+| ch08-packages | Software management | 8 | 6 | 2 | ~~dnf-autoremove-v1~~, dnf-config-manager-v1, dnf-group-v1, ~~dnf-history-undo-v1~~, dnf-install-v1, dnf-local-rpm-v1, dnf-module-v1, repo-enable-v1 |
+| ch09-storage | Local storage | 10 | 7 | 3 | add-partition-ext4-v1, add-partition-gpt-v1, add-partition-vfat-v1, add-partition-xfs-v1, ~~fstab-noauto-v1~~, ~~mount-options-v1~~, persistent-mount-label-v1, persistent-mount-uuid-v1, ~~resize-partition-v1~~, swap-partition-v1 |
+| ch10-lvm | LVM | 8 | 5 | 3 | create-lv-v1, extend-lv-ext4-v1, extend-lv-v1, lv-ext4-v1, ~~lv-rename-v1~~, ~~lvm-snapshot-v1~~, ~~stratis-pool-v1~~, vg-extend-v1 |
+| ch11-boot | Boot process | 9 | 8 | 1 | boot-target-v1, custom-unit-v1, disable-service-v1, grub-param-v1, grub-timeout-v1, repair-fstab-v1, reset-root-password-v1, service-enable-v1, ~~service-mask-v1~~ |
+| ch12-logging | Logging and time | 9 | 6 | 3 | ~~chrony-server-v1~~, journalctl-priority-v1, journalctl-v1, journald-persistent-v1, journald-size-v1, ~~logrotate-v1~~, ntp-toggle-v1, ~~rsyslog-rule-v1~~, timedatectl-v1 |
+| ch13-networking | Networking | 9 | 6 | 3 | dns-resolver-v1, hostname-dns-v1, ~~ipv6-addr-v1~~, ~~nmcli-bond-v1~~, nmcli-connection-add-v1, routing-v1, ~~ssh-hardening-v1~~, ssh-key-auth-v1, static-ip-v1 |
+| ch14-nfs | NFS / Autofs | 6 | 4 | 2 | autofs-direct-v1, autofs-v1, ~~nfs-export-v1~~, nfs-mount-options-v1, nfs-mount-v1, ~~showmount-v1~~ |
+| ch15-firewall | Firewall | 7 | 7 | — | firewall-add-port-v1, firewall-add-service-v1, firewall-masquerade-v1, firewall-port-forward-v1, firewall-remove-service-v1, firewall-rich-rule-v1, firewall-zone-v1 |
+| ch16-containers | Containers | 11 | 7 | 4 | container-env-v1, ~~container-healthcheck-v1~~, container-network-v1, container-registry-v1, ~~container-resource-limits-v1~~, container-service-v1, container-storage-v1, container-user-service-v1, run-container-v1, *container-build-v1*, *container-inspect-v1* |
+| **Total** | | **142** | **119** | **21** | *italic* = borderline |
 
-### Extra tasks (8)
+### Extra tasks (21)
 
 | Task | Why it's extra |
 |---|---|
 | `ch07/systemd-timer-v1` | Systemd timers are not listed in EX200 objectives (only `at` and `cron`) |
 | `ch07/tmpfiles-v1` | tmpfiles.d management is not an EX200 objective |
+| `ch08/dnf-history-undo-v1` | `dnf history undo` is not an explicit EX200 objective verb |
+| `ch08/dnf-autoremove-v1` | Orphaned-dependency cleanup with `dnf autoremove` is not an explicit EX200 objective |
+| `ch09/mount-options-v1` | Hardened mount options (nosuid/nodev/noexec) are not explicitly named in EX200 objectives |
+| `ch09/fstab-noauto-v1` | `noauto`/`user` mount options are not explicitly named in EX200 objectives |
+| `ch09/resize-partition-v1` | EX200 only lists extending logical volumes, not plain partitions |
 | `ch10/stratis-pool-v1` | Stratis is not in the current EX200 exam |
+| `ch10/lvm-snapshot-v1` | LVM snapshots are not in the current EX200 exam objectives |
+| `ch10/lv-rename-v1` | `lvrename` is not an explicit EX200 objective verb |
+| `ch11/service-mask-v1` | `systemctl mask` is not an explicit EX200 objective verb |
 | `ch12/chrony-server-v1` | EX200 tests NTP client sync, not running your own NTP server |
 | `ch12/rsyslog-rule-v1` | Advanced rsyslog routing rules are not in EX200 objectives |
+| `ch12/logrotate-v1` | Logrotate configuration is not an explicit EX200 objective |
 | `ch13/ipv6-addr-v1` | IPv6 configuration is not explicitly listed in EX200 objectives |
 | `ch13/nmcli-bond-v1` | Network bonding is not in EX200 networking objectives |
+| `ch13/ssh-hardening-v1` | Disabling root/password SSH login is good practice but not an explicit EX200 objective |
 | `ch14/nfs-export-v1` | EX200 tests NFS client (mount/autofs), not NFS server configuration |
+| `ch14/showmount-v1` | Requires configuring an NFS *server* export — EX200 only tests the NFS *client* role |
+| `ch16/container-healthcheck-v1` | Container health checks are not an explicit EX200 objective |
+| `ch16/container-resource-limits-v1` | Memory/CPU limits on containers are not an explicit EX200 objective |
 
 ### Borderline tasks (2)
 
