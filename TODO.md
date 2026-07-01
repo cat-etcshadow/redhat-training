@@ -58,6 +58,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `scp-transfer-v1` — scp file to localhost, rsync directory; SSH key pre-configured
 - [x] `vim-edit-v1` — edit config file with a text editor (key=value substitutions)
 - [x] `man-docs-v1` — use man pages to find archive flag for cp, use find -size to locate large files
+- [x] `sort-uniq-v1` — sort/uniq -c to find the most frequent line in a log file
+- [x] `tar-selective-v1` — extract a single named file from a tar archive without unpacking the rest
+- [x] `io-redirect-v1` — append stdout and redirect stderr to separate files in one invocation
 
 ### ch02 — Shell Scripting
 - [x] `scripting-if-v1` — write check_user.sh: if/elif/else, id check, specific exit codes
@@ -69,6 +72,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `scripting-functions-v1` — write disk_report.sh: named functions, --output flag, mountpoint check
 - [x] `scripting-heredoc-v1` — write gen_config.sh: heredoc with/without variable expansion
 - [x] `scripting-exit-codes-v1` — write script that uses meaningful exit codes, use $? and ||/&&
+- [x] `scripting-arrays-v1` — write inventory_report.sh: indexed arrays, for loop over indices
+- [x] `scripting-until-v1` — write wait_for_file.sh: until loop polling with a timeout
+- [x] `scripting-defaults-v1` — write deploy_env.sh: ${VAR:-default} parameter expansion, string tests
 
 ### ch03 — Manage Local Users and Groups
 - [x] `create-users-v1` — create two users with specific UIDs, group with GID, sudo NOPASSWD
@@ -77,6 +83,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `password-aging-v1` — set max age, warning days, inactive period for existing user
 - [x] `group-membership-v1` — change primary group, add supplementary groups
 - [x] `delete-user-v1` — lock account, userdel -r, groupdel, remove sudoers drop-in
+- [x] `usermod-lock-v1` — lock one account with usermod -L, unlock another with usermod -U
+- [x] `group-batch-membership-v1` — set exact group membership at once with gpasswd -M
+- [x] `useradd-custom-v1` — create a system service account: nologin shell, custom home, no auto-created dir
 
 ### ch04 — Control Access to Files
 - [x] `setgid-dir-v1` — create directory with SGID, correct group ownership and mode
@@ -84,6 +93,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `acl-v1` — set named ACL entries on a directory, verify with getfacl
 - [x] `umask-v1` — set persistent per-user and system-wide umask
 - [x] `fix-perms-v1` — diagnose and correct broken web root permissions (chgrp -R, find -exec chmod)
+- [x] `acl-mask-v1` — fix an ACL mask restricting a named entry's effective permissions
+- [x] `suid-sgid-audit-v1` — find files with SUID set, remove an unauthorized one, keep an approved one
+- [x] `numeric-perms-v1` — apply exact numeric chmod modes across a set of files
 
 ### ch05 — Manage SELinux Security
 - [x] `fix-file-context-v1` — wrong context on /var/www/html subdir, fix with semanage + restorecon
@@ -93,17 +105,26 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `troubleshoot-audit-v1` — find SELinux denial in audit log, identify boolean fix
 - [x] `selinux-port-v1` — add non-standard port to http_port_t, configure Apache
 - [x] `selinux-mode-v1` — setenforce 0/1, persist SELINUX=enforcing in config, ls -Z output
+- [x] `selinux-restorecon-v1` — cp --preserve=context carries a wrong type in; fix with restorecon alone
+- [x] `selinux-boolean-set-v1` — enable a randomly-chosen SELinux boolean persistently
+- [x] `selinux-port-ssh-v1` — label a non-standard SSH port with ssh_port_t, configure sshd to listen on it
 
 ### ch06 — Tune System Performance
 - [x] `tuned-profile-v1` — set and activate a specific tuned profile persistently
 - [x] `process-priority-v1` — renice a running process, launch process with specific nice value
 - [x] `kill-signals-v1` — kill processes with pkill, killall, and kill by PID
+- [x] `job-control-v1` — launch a background process with nohup, redirect output, survive hangup
+- [x] `ps-filter-report-v1` — ps -ef + grep to find PIDs by name, save filtered report
+- [x] `nice-launch-v1` — renice -u to change scheduling priority for all of a user's processes at once
 
 ### ch07 — Schedule Future Tasks
 - [x] `at-job-v1` — schedule one-time job with at
 - [x] `cron-job-v1` — create cron entry for a user to run script at specific time
 - [x] `systemd-timer-v1` — create a systemd timer unit for a recurring task
 - [x] `tmpfiles-v1` — configure tmpfiles.d to create/clean a directory on boot
+- [x] `cron-system-v1` — system-wide cron job in /etc/cron.d with a user field
+- [x] `at-manage-v1` — atq to list queued jobs, atrm to remove one specific job
+- [x] `cron-env-v1` — set PATH in a crontab so a job can find a non-standard-PATH dependency
 
 ### ch08 — Install and Update Software Packages
 - [x] `dnf-install-v1` — install a package, verify with rpm -q
@@ -111,6 +132,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `dnf-module-v1` — enable a nodejs module stream, install from it
 - [x] `repo-enable-v1` — enable a disabled DNF repo, install package from it
 - [x] `dnf-local-rpm-v1` — install from local .rpm file; configure local file:// repo with createrepo_c
+- [x] `dnf-history-undo-v1` — undo an entire transaction with dnf history undo (not per-package remove)
+- [x] `dnf-autoremove-v1` — dnf mark dependency + dnf autoremove to clean an orphaned package
+- [x] `dnf-config-manager-v1` — dnf config-manager --add-repo, disable gpgcheck, install from it
 
 ### ch09 — Manage Basic Storage
 - [x] `add-partition-xfs-v1` — partition disk (MBR), format XFS, mount persistently at /mnt/data
@@ -120,6 +144,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `swap-partition-v1` — create swap partition, activate persistently
 - [x] `persistent-mount-uuid-v1` — update /etc/fstab to use UUID instead of device path
 - [x] `persistent-mount-label-v1` — mount by filesystem label
+- [x] `mount-options-v1` — persistent mount with nosuid/nodev/noexec hardened options
+- [x] `resize-partition-v1` — grow a partition with growpart and its XFS filesystem online
+- [x] `fstab-noauto-v1` — noauto,user options so a regular user can mount/unmount without root
 
 ### ch10 — Manage Storage Stack (LVM)
 - [x] `create-lv-v1` — PV on extra disk, VG vg_data, LV lv_storage, format XFS, mount at /mnt/storage
@@ -127,6 +154,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `lv-ext4-v1` — create LV, format ext4, mount persistently
 - [x] `stratis-pool-v1` — create Stratis pool + filesystem, fstab with x-systemd.requires (RHEL_VERSIONS="9 10")
 - [x] `extend-lv-ext4-v1` — extend existing LV, resize ext4 filesystem online with resize2fs
+- [x] `lvm-snapshot-v1` — create an LVM snapshot of an existing logical volume
+- [x] `vg-extend-v1` — add a new physical volume to an existing (near-full) volume group
+- [x] `lv-rename-v1` — lvrename an LV and fix a device-path fstab reference so it still mounts
 
 ### ch11 — Control Services and Boot Process
 - [x] `reset-root-password-v1` — root locked, candidate resets via rd.break to known value
@@ -135,6 +165,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `service-enable-v1` — ensure a service is enabled and running after reboot
 - [x] `grub-param-v1` — add kernel parameter with grubby
 - [x] `custom-unit-v1` — create Type=oneshot systemd unit file, enable and start it
+- [x] `service-mask-v1` — systemctl mask a deprecated unit so it can't be started even manually
+- [x] `grub-timeout-v1` — set GRUB_TIMEOUT in /etc/default/grub, regenerate grub.cfg
+- [x] `disable-service-v1` — stop and disable a running, enabled service
 
 ### ch12 — Analyze and Store Logs
 - [x] `journald-persistent-v1` — configure journald to persist logs across reboots
@@ -143,6 +176,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `chrony-server-v1` — configure chrony NTP client with specific server
 - [x] `journalctl-v1` — query journal by syslog identifier and by boot, redirect to files
 - [x] `timedatectl-v1` — set system timezone with timedatectl, enable chronyd NTP service
+- [x] `logrotate-v1` — configure /etc/logrotate.d for a custom app log: size, rotate, compress, copytruncate
+- [x] `journalctl-priority-v1` — filter journal entries by priority (-p err), excluding lower-priority noise
+- [x] `ntp-toggle-v1` — enable/disable NTP sync with timedatectl set-ntp (not touching chronyd directly)
 
 ### ch13 — Manage Networking
 - [x] `hostname-dns-v1` — set static hostname, add /etc/hosts entry
@@ -151,17 +187,26 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `routing-v1` — add persistent static route via nmcli
 - [x] `ipv6-addr-v1` — assign static IPv6 address via nmcli, method manual, persist
 - [x] `ssh-key-auth-v1` — generate RSA key pair, configure authorized_keys, functional test
+- [x] `nmcli-connection-add-v1` — nmcli con add a new dummy-interface profile with static IPv4, autoconnect no
+- [x] `dns-resolver-v1` — set DNS servers via nmcli ipv4.dns, ignore-auto-dns, verify resolv.conf
+- [x] `ssh-hardening-v1` — sshd_config: PermitRootLogin no, PasswordAuthentication no
 
 ### ch14 — Access Network-Attached Storage
 - [x] `nfs-mount-v1` — mount NFS share persistently (fstab checked; server not required in lab)
 - [x] `nfs-export-v1` — configure NFS server export
 - [x] `autofs-v1` — configure autofs for indirect NFS mounts
+- [x] `nfs-mount-options-v1` — persistent NFS mount with ro,noatime,rsize/wsize tuning
+- [x] `autofs-direct-v1` — direct autofs map (/- master entry, full-path key, vs. indirect wildcard)
+- [x] `showmount-v1` — showmount -e to discover an export, mount it (self-hosted local NFS server)
 
 ### ch15 — Manage Network Security
 - [x] `firewall-add-service-v1` — add http + https services permanently to firewalld
 - [x] `firewall-add-port-v1` — open a specific TCP port permanently
 - [x] `firewall-rich-rule-v1` — add a rich rule allowing specific source IP
 - [x] `firewall-zone-v1` — assign interface to zone, set zone default
+- [x] `firewall-port-forward-v1` — permanent --add-forward-port redirecting one port to another
+- [x] `firewall-remove-service-v1` — permanently remove a service from a zone
+- [x] `firewall-masquerade-v1` — permanently enable IP masquerading on a zone
 
 ### ch16 — Run Containers
 - [x] `run-container-v1` — pull and run container with podman, map port
@@ -172,6 +217,9 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `container-user-service-v1` — rootless container as user systemd service; loginctl enable-linger
 - [x] `container-inspect-v1` — podman inspect + skopeo inspect, save JSON/output to report file
 - [x] `container-registry-v1` — podman search, pull, tag image, review registries.conf
+- [x] `container-healthcheck-v1` — run with --health-cmd/--health-interval, wait for healthy status
+- [x] `container-network-v1` — podman network create with a subnet, attach a container to it
+- [x] `container-resource-limits-v1` — run with --memory and --cpus, verify via podman inspect
 
 ---
 
