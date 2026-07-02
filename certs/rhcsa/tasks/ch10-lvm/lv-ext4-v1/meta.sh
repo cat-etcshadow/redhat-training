@@ -4,3 +4,4 @@ CHAPTER=10
 TITLE="Create LVM logical volume with ext4 filesystem"
 DIFFICULTY="medium"
 RHEL_VERSIONS="8 9 10"
+NEEDS_DISK=1

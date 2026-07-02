@@ -155,9 +155,19 @@ SNAPSHOT_NAME="pre-exam"
 
 # Create (or atomically replace) the pre-exam snapshot using --reuse.
 # --reuse avoids the delete-then-create window where no snapshot exists.
+#
+# Right after `incus launch`, Incus can still consider the instance's
+# "create" operation in-flight even though the guest agent already answers
+# (vm_wait_ready passed) — a snapshot attempt in that window fails with
+# "Instance is busy running a \"create\" operation". Retry through it.
 vm_snapshot_create() {
   local name="$1"
-  incus snapshot create "$name" "$SNAPSHOT_NAME" --reuse
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    incus snapshot create "$name" "$SNAPSHOT_NAME" --reuse && return 0
+    [[ $attempt -lt 5 ]] || return 1
+    sleep 2
+  done
 }
 
 vm_snapshot_restore() {

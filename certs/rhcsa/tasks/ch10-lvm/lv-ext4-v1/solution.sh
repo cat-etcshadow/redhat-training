@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-DISK=$(lsblk -dpno NAME,TYPE | awk '$2=="disk"{print $1}' | sed -n '2p')
+DISK=$(lsblk -dpbno NAME,TYPE,SIZE | awk -v want="$TASK_DISK_SIZE_GB" '$2=="disk"{gib=int(($3+536870912)/1073741824); if (gib==want) print $1}')
 pvcreate "$DISK"
 vgcreate "$VG_NAME" "$DISK"
 lvcreate -L "$LV_SIZE" -n "$LV_NAME" "$VG_NAME"

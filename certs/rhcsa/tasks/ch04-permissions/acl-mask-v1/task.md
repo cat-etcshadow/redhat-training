@@ -6,8 +6,7 @@ group are reporting they cannot actually write to the directory.
 
 Your task:
 
-1. Inspect the ACLs on **{{TARGET_DIR}}** with `getfacl` and determine why
-   the group's granted permissions are not taking effect.
+1. Determine why the group's granted permissions are not taking effect.
 
 2. Fix it so that **{{TARGET_GROUP}}** has full, **effective** read, write,
    and execute access to **{{TARGET_DIR}}** — without removing or changing

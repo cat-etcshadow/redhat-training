@@ -1,5 +1,7 @@
 ## Create a Stratis storage pool and filesystem
 
+An extra **{{DISK_SIZE}}** block device is attached to the system.
+
 Your task:
 
 1. Install the Stratis packages and enable the daemon.

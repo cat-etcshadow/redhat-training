@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 udevadm settle
-DISK=$(lsblk -dpno NAME,TYPE | awk '$2=="disk"{print $1}' | sed -n '2p')
+DISK=$(lsblk -dpbno NAME,TYPE,SIZE | awk -v want="$TASK_DISK_SIZE_GB" '$2=="disk"{gib=int(($3+536870912)/1073741824); if (gib==want) print $1}')
 parted "$DISK" --script mklabel gpt
 parted "$DISK" --script mkpart primary xfs 1MiB 100%
 udevadm settle

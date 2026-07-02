@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 DIRS=(teamdocs reports shared-notes)
-GROUPS=(editors reviewers writers)
+GROUP_NAMES=(editors reviewers writers)
 i=$(( RANDOM % ${#DIRS[@]} ))
 
 echo "TARGET_DIR=/srv/${DIRS[$i]}"
-echo "TARGET_GROUP=${GROUPS[$i]}"
+echo "TARGET_GROUP=${GROUP_NAMES[$i]}"

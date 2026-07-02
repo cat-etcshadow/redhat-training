@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-PAIRS=("tree bc" "screen mtr" "mtr tree" "bc screen")
+PAIRS=("tree bc" "tmux mtr" "mtr tree" "bc tmux")
 i=$(( RANDOM % ${#PAIRS[@]} ))
 pair=(${PAIRS[$i]})
 

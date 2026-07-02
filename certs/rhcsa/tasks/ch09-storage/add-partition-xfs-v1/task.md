@@ -1,6 +1,6 @@
 ## Create XFS partition and mount persistently
 
-An additional block device is attached to the system.
+An additional **{{DISK_SIZE}}** block device is attached to the system.
 
 Your task:
 

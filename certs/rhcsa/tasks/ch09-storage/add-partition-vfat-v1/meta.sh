@@ -4,3 +4,4 @@ CHAPTER=9
 TITLE="Create a vfat partition and mount it persistently"
 DIFFICULTY="easy"
 RHEL_VERSIONS="8 9 10"
+NEEDS_DISK=1

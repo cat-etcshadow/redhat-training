@@ -2,7 +2,7 @@
 dnf install -y stratisd stratis-cli &>/dev/null
 systemctl enable --now stratisd
 udevadm settle
-DISK=$(lsblk -dpno NAME,TYPE | awk '$2=="disk"{print $1}' | sed -n '2p')
+DISK=$(lsblk -dpbno NAME,TYPE,SIZE | awk -v want="$TASK_DISK_SIZE_GB" '$2=="disk"{gib=int(($3+536870912)/1073741824); if (gib==want) print $1}')
 stratis pool create "$POOL_NAME" "$DISK"
 stratis filesystem create "$POOL_NAME" "$FS_NAME"
 mkdir -p "$MOUNT_POINT"

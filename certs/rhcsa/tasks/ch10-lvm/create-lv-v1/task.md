@@ -1,6 +1,6 @@
 ## Create a volume group and logical volume with XFS filesystem
 
-An additional block device is attached to the system.
+An additional **{{DISK_SIZE}}** block device is attached to the system.
 
 Your task:
 

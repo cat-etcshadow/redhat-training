@@ -3,7 +3,7 @@ dnf install -y firewalld &>/dev/null
 systemctl enable --now firewalld
 # not immediately active after dnf install
 for _i in $(seq 15); do
-  systemctl is-active --quiet firewalld && break
+  firewall-cmd --state &>/dev/null && break
   sleep 1
 done
 # remove zone if a prior session left it

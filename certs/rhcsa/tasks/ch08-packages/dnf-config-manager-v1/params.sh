@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-PKGS=(figlet tree screen mtr)
+PKGS=(tmux tree bc mtr)
 i=$(( RANDOM % ${#PKGS[@]} ))
 
 echo "PKG=${PKGS[$i]}"

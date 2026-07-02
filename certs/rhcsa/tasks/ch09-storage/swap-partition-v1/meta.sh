@@ -4,3 +4,4 @@ CHAPTER=9
 TITLE="Create a swap partition and activate persistently"
 DIFFICULTY="medium"
 RHEL_VERSIONS="8 9 10"
+NEEDS_DISK=1

@@ -135,7 +135,7 @@ rhtr <cert> <command> [options]
 ```bash
 rhtr rhcsa new                              # random full exam (default profile, default RHEL version)
 rhtr rhcsa new --profile full               # explicit profile name
-rhtr rhcsa new --profile topic-selinux      # topic-only random exam
+rhtr rhcsa new --profile selinux            # topic-only random exam
 rhtr rhcsa new --fixed full-v1              # pinned fixed task list
 rhtr rhcsa new --rhel 8                     # run against RHEL 8 (Rocky 8)
 rhtr rhcsa new --rhel 10 --profile full     # flags combine freely
@@ -224,8 +224,8 @@ redhat-training/
 │   │   └── exams/
 │   │       ├── profiles/           # random weighted draw profiles
 │   │       │   ├── full.conf
-│   │       │   ├── topic-selinux.conf
-│   │       │   └── topic-storage.conf
+│   │       │   ├── selinux.conf
+│   │       │   └── storage.conf
 │   │       └── fixed/              # pinned task lists
 │   │           ├── full-v1.conf
 │   │           └── full-v2.conf

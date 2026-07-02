@@ -4,3 +4,4 @@ CHAPTER=10
 TITLE="Extend a volume group with a new physical volume"
 DIFFICULTY="medium"
 RHEL_VERSIONS="8 9 10"
+NEEDS_DISK=1

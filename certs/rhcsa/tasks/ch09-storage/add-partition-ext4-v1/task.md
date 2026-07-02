@@ -1,6 +1,6 @@
 ## Create ext4 partition and mount persistently
 
-An extra block device is attached to the system.
+An extra **{{DISK_SIZE}}** block device is attached to the system.
 
 Your task:
 

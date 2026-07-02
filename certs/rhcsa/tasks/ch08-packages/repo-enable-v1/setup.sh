@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
-# Create a disabled extras repo pointing at the OS BaseOS repo as a stand-in
-# This avoids needing internet access during setup
-cat > /etc/yum.repos.d/rhtr-extras.repo <<'REPO'
-[extras]
-name=RHTR Extras (disabled by default)
-baseurl=file:///mnt/BaseOS
-enabled=0
-gpgcheck=0
-REPO
+# Rocky already ships a real "extras" repo, enabled by default. Disable it
+# here so the task starts in the expected state. A separate repo file with
+# its own [extras] id would collide with this one and break dnf entirely.
+repo_file=$(grep -l '^\[extras\]' /etc/yum.repos.d/*.repo | head -1)
+sed -i '/^\[extras\]/,/^\[/{s/^enabled=1/enabled=0/}' "$repo_file"
 dnf remove -y epel-release 2>/dev/null || true

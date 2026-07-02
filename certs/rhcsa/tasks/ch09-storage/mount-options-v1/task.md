@@ -1,6 +1,6 @@
 ## Mount a filesystem persistently with hardened mount options
 
-An additional block device is attached to the system with a single
+An additional **{{DISK_SIZE}}** block device is attached to the system with a single
 **ext4** partition already created and formatted on it.
 
 Your task:

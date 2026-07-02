@@ -6,8 +6,8 @@ excluded.
 
 Your task:
 
-1. Use `ps -ef` together with `grep` to find the PIDs of every process whose
-   command line contains **rhtr-worker**.
+1. Find the PIDs of every process whose command line contains
+   **rhtr-worker**.
 
 2. Write those PIDs, one per line, sorted numerically, to
    **{{REPORT_FILE}}** — and nothing else.

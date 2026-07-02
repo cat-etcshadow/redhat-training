@@ -1,5 +1,7 @@
 ## Create an LVM logical volume with ext4
 
+An extra **{{DISK_SIZE}}** disk is available.
+
 Your task:
 
 1. Identify the extra disk.

@@ -19,7 +19,10 @@ pkill -f rhtr-other-proc  2>/dev/null || true
 sleep 0.2
 rm -f "$REPORT_FILE"
 
-/usr/local/bin/rhtr-worker-a &
-/usr/local/bin/rhtr-worker-b &
-/usr/local/bin/rhtr-other-proc &
+/usr/local/bin/rhtr-worker-a </dev/null >/dev/null 2>&1 &
+disown $!
+/usr/local/bin/rhtr-worker-b </dev/null >/dev/null 2>&1 &
+disown $!
+/usr/local/bin/rhtr-other-proc </dev/null >/dev/null 2>&1 &
+disown $!
 sleep 1

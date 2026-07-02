@@ -70,6 +70,7 @@ PY
 
 # ── show best/last score per topic across all saved exams ────────────────────
 cmd_overview() {
+  local CERT="${1:-$CERT}"
   local hist_file="$HISTORY_HOME/$CERT.jsonl"
 
   echo ""
@@ -152,4 +153,12 @@ PY
   done <<< "$sorted"
 
   echo ""
+}
+
+# ── overview across every cert with a cert.conf, not just one ────────────────
+cmd_overview_all() {
+  for cert_dir in "$RHTR_DIR"/certs/*/; do
+    [[ -f "$cert_dir/cert.conf" ]] || continue
+    cmd_overview "$(basename "$cert_dir")"
+  done
 }

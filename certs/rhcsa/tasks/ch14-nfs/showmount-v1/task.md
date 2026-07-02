@@ -5,7 +5,7 @@ but its exact export path is not documented.
 
 Your task:
 
-1. Use `showmount -e localhost` to list the available exports, and save
+1. Discover the available exports on **localhost**, and save
    the output to **{{REPORT_FILE}}**.
 
 2. Mount the discovered export at **{{MOUNT_POINT}}** (a one-time mount —

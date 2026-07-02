@@ -25,6 +25,7 @@ usage() {
   Usage:
     rhtr list-certs
     rhtr import-image <alias> <path-to-qcow2>
+    rhtr overview                 (best/last score per topic, across all certs)
     rhtr <cert> <command> [options]
 
   Session commands:
@@ -39,7 +40,7 @@ usage() {
     tasks     (show tasks for active session or last session)
     save      [<label>]   (save last graded exam's per-topic scores to history)
     remember  [<label>]   (alias for save)
-    overview              (best/last score per topic across saved exams)
+    overview              (best/last score per topic, this cert only)
 
   Discovery commands (no VM required):
     list-topics
@@ -59,6 +60,7 @@ EOF
 case "$1" in
   list-certs)   cmd_list_certs; exit 0 ;;
   import-image) shift; vm_import_image "$@"; exit 0 ;;
+  overview)     cmd_overview_all; exit 0 ;;
   --help|-h)    usage; exit 0 ;;
 esac
 

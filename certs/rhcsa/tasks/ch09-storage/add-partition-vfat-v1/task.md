@@ -1,6 +1,6 @@
 ## Create a vfat (FAT32) partition and mount it persistently
 
-An extra disk is available.
+An extra **{{DISK_SIZE}}** disk is available.
 
 Your task:
 

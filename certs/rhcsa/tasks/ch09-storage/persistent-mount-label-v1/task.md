@@ -1,5 +1,7 @@
 ## Create XFS partition with label and mount by LABEL
 
+An extra **{{DISK_SIZE}}** disk is available.
+
 Your task:
 
 1. Identify the extra disk.

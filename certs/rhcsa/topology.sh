@@ -3,16 +3,26 @@
 #
 # Provides: topology_create, topology_destroy
 # Reads:    RHEL_VERSION (set by exam.sh from --rhel flag or cert default)
+#           EXTRA_DISK_SIZES_GIB (set by exam.sh's _assign_task_disks, one
+#           entry per selected task that needs a dedicated disk — may be
+#           empty)
+#           SESSION_NEEDS_CONTAINERS (set by exam.sh's _assign_task_requirements;
+#           "1" only when a ch16-containers task is in the selected session —
+#           gates the podman install + offline registry mirror so profiles
+#           like networking/storage/lvm don't pay for container setup)
 #
 # Environment:
-#   1 VM:   rhtr-rhcsa-server-<version>  (Rocky Linux, SELinux enforcing)
-#   1 disk: rhtr-rhcsa-disk-<version>   (4 GiB block volume for storage/LVM tasks)
+#   1 VM:    rhtr-rhcsa-server-<version>  (Rocky Linux, SELinux enforcing)
+#   N disks: rhtr-rhcsa-disk-<version>-1..N  (one block volume per disk-
+#            needing task in the session, sized per EXTRA_DISK_SIZES_GIB —
+#            see _assign_task_disks in lib/exam.sh for why each task gets
+#            its own disk instead of sharing one)
 #
 # Incus profile "rhtr-rhcsa" is created once and reused across sessions.
 # It captures all VM-level config so incus launch stays a one-liner.
 
 _rhcsa_vm_name()      { echo "rhtr-rhcsa-server-${RHEL_VERSION}"; }
-_rhcsa_disk_name()    { echo "rhtr-rhcsa-disk-${RHEL_VERSION}"; }
+_rhcsa_disk_name()    { echo "rhtr-rhcsa-disk-${RHEL_VERSION}-${1}"; }
 _rhcsa_image()        { echo "rocky${RHEL_VERSION}"; }
 _rhcsa_profile_name() { echo "rhtr-rhcsa"; }
 
@@ -28,9 +38,9 @@ topology_names() {
 
 topology_create() {
   local vm;      vm=$(_rhcsa_vm_name)
-  local disk;    disk=$(_rhcsa_disk_name)
   local img;     img=$(_rhcsa_image)
   local profile; profile=$(_rhcsa_profile_name)
+  local -a sizes=("${EXTRA_DISK_SIZES_GIB[@]}")
 
   VM_NAMES=("$vm")
 
@@ -42,19 +52,38 @@ topology_create() {
     "limits.cpu=2" \
     "limits.memory=2GiB"
 
-  # Create block volume before the VM so it is ready to attach immediately after launch.
-  if ! incus storage volume info default "$disk" &>/dev/null; then
-    info "Creating block disk: $disk (4 GiB)"
-    incus storage volume create default "$disk" --type=block size=4GiB
-  fi
+  # Create block volumes before the VM so they're ready to attach immediately after launch.
+  local i disk
+  for i in "${!sizes[@]}"; do
+    disk=$(_rhcsa_disk_name "$((i + 1))")
+    if ! incus storage volume info default "$disk" &>/dev/null; then
+      info "Creating block disk: $disk (${sizes[$i]} GiB)"
+      incus storage volume create default "$disk" --type=block size="${sizes[$i]}GiB"
+    fi
+  done
 
   if vm_exists "$vm"; then
     info "VM $vm already exists — starting..."
     vm_start "$vm"
-    # Re-attach disk if it was removed; run udevadm settle so the OS sees it.
-    if ! incus config device show "$vm" | grep -q "extradisk"; then
-      incus config device add "$vm" extradisk disk pool=default source="$disk"
-      vm_exec "$vm" udevadm settle
+    # Re-attach any disk that was removed; run udevadm settle so the OS sees it.
+    local attached settled=0
+    attached=$(incus config device show "$vm")
+    for i in "${!sizes[@]}"; do
+      disk=$(_rhcsa_disk_name "$((i + 1))")
+      if ! grep -q "^extradisk$((i + 1)):" <<<"$attached"; then
+        incus config device add "$vm" "extradisk$((i + 1))" disk pool=default source="$disk"
+        settled=1
+      fi
+    done
+    [[ $settled -eq 1 ]] && vm_exec "$vm" udevadm settle
+
+    # Only touch podman/the registry mirror when this session actually has a
+    # container task — most profiles (networking, storage, lvm, ...) don't.
+    if [[ "${SESSION_NEEDS_CONTAINERS:-0}" == "1" ]]; then
+      # Retrofit the offline registry mirror onto VMs created before it existed.
+      # No-op if already configured; best-effort if internet isn't available.
+      vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/container-cache-setup.sh" \
+        || warn "Offline registry mirror not (yet) configured on $vm — container tasks needing search/pull may fail without internet."
     fi
   else
     info "Creating VM: $vm (RHEL $RHEL_VERSION)"
@@ -65,32 +94,52 @@ topology_create() {
 
     vm_wait_ready "$vm"
 
-    # Pre-load the container image used by all container tasks.
-    # Done once at VM creation so tasks run fully offline during the exam.
-    info "Pre-loading container image (ubi9) — requires internet at setup time..."
-    if vm_exec "$vm" podman pull registry.access.redhat.com/ubi9/ubi </dev/null &>/dev/null; then
-      vm_exec "$vm" podman save -o /var/cache/rhtr-ubi9.tar registry.access.redhat.com/ubi9/ubi </dev/null &>/dev/null || true
-      ok "Container image cached at /var/cache/rhtr-ubi9.tar"
-    else
-      warn "Could not pull ubi9 image — container tasks will need internet at task setup time."
-      warn "To cache it now:  incus exec $vm -- podman pull registry.access.redhat.com/ubi9/ubi"
-      warn "Then save cache:  incus exec $vm -- podman save -o /var/cache/rhtr-ubi9.tar registry.access.redhat.com/ubi9/ubi"
+    # Only pull in podman/the registry mirror when this session actually has
+    # a container task — most profiles (networking, storage, lvm, ...) never
+    # touch containers and shouldn't pay for this at VM creation.
+    if [[ "${SESSION_NEEDS_CONTAINERS:-0}" == "1" ]]; then
+      # Pre-load the container image used by all container tasks, and stand up
+      # a local offline registry mirror (see container-cache-setup.sh) so
+      # podman search/pull and skopeo inspect work with zero internet during
+      # the actual exam. Done once at VM creation, while internet is available.
+      # podman isn't present on the base image yet — install it first, or the
+      # pull below fails with "command not found" and looks like a network issue.
+      info "Installing podman..."
+      vm_exec "$vm" dnf install -y podman </dev/null &>/dev/null
+
+      info "Setting up offline container registry mirror (ubi9 + registry:2) — requires internet at setup time..."
+      if vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/container-cache-setup.sh"; then
+        ok "Container tasks are ready to run fully offline"
+      else
+        warn "Could not fully set up the offline registry mirror — container tasks needing search/pull may fail without internet."
+        warn "Retry once you have internet by re-running topology_create (it's idempotent)."
+      fi
     fi
 
-    # Attach the block disk and wait for udev so storage setup scripts see it immediately.
-    incus config device add "$vm" extradisk disk pool=default source="$disk"
-    vm_exec "$vm" udevadm settle
+    # Attach the block disks and wait for udev so storage setup scripts see them immediately.
+    for i in "${!sizes[@]}"; do
+      disk=$(_rhcsa_disk_name "$((i + 1))")
+      incus config device add "$vm" "extradisk$((i + 1))" disk pool=default source="$disk"
+    done
+    [[ ${#sizes[@]} -gt 0 ]] && vm_exec "$vm" udevadm settle
   fi
 
   ok "VM $vm ready"
 }
 
 topology_destroy() {
-  local vm;   vm=$(_rhcsa_vm_name)
-  local disk; disk=$(_rhcsa_disk_name)
+  local vm; vm=$(_rhcsa_vm_name)
 
   vm_delete "$vm"
-  incus storage volume delete default "$disk" 2>/dev/null || true
+
+  # Enumerate rather than relying on remembered count/sizes — destroy can run
+  # in a fresh shell with no EXTRA_DISK_SIZES_GIB set.
+  local disk
+  while IFS= read -r disk; do
+    [[ -z "$disk" ]] && continue
+    incus storage volume delete default "$disk" 2>/dev/null || true
+  done < <(incus storage volume list default --format csv -c n 2>/dev/null \
+             | grep "^rhtr-rhcsa-disk-${RHEL_VERSION}-")
 
   ok "Topology destroyed"
 }

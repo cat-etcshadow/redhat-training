@@ -10,4 +10,6 @@ enabled=$(grep -A5 '^\[extras\]' "$repo_file" | grep '^enabled' | awk -F= '{prin
 [[ "$enabled" == "1" ]] \
   || fail "extras repo is not enabled in $repo_file (enabled=$enabled)"
 
+rpm -q epel-release &>/dev/null || fail "epel-release is not installed"
+
 [[ $errors -eq 0 ]] && exit 0 || exit 1

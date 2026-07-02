@@ -3,7 +3,7 @@ set -euo pipefail
 errors=0
 fail() { echo "FAIL: $*"; (( errors++ )); }
 
-DISK=$(lsblk -dpno NAME,TYPE | awk '$2=="disk"{print $1}' | sed -n '2p')
+DISK=$(lsblk -dpbno NAME,TYPE,SIZE | awk -v want="$TASK_DISK_SIZE_GB" '$2=="disk"{gib=int(($3+536870912)/1073741824); if (gib==want) print $1}')
 [[ -n "$DISK" ]] || fail "no extra disk found"
 
 # must have GPT partition table

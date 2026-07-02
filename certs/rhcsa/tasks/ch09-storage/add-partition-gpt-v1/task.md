@@ -1,6 +1,6 @@
 ## Create a GPT partition and mount it persistently
 
-An extra disk is available. It must be partitioned using a **GPT** partition table.
+An extra **{{DISK_SIZE}}** disk is available. It must be partitioned using a **GPT** partition table.
 
 Your task:
 

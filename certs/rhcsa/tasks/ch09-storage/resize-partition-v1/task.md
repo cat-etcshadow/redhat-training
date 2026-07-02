@@ -2,7 +2,7 @@
 
 An additional block device is attached to the system. It has a single
 **1 GiB** XFS partition mounted persistently at **{{MOUNT_POINT}}**, but the
-disk itself is larger — there is unallocated space after the partition.
+disk itself is larger (**{{DISK_SIZE}}** total) — there is unallocated space after the partition.
 
 Your task:
 

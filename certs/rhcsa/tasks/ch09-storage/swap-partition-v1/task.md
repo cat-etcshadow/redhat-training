@@ -1,5 +1,7 @@
 ## Create a swap partition and activate persistently
 
+An unpartitioned **{{DISK_SIZE}}** disk is available.
+
 Your task:
 
 1. Identify the unpartitioned extra disk on the system.
