@@ -1,4 +1,4 @@
-## Protect a file from modification with chattr
+## Protect a file from modification, even by root
 
 The file **{{PROTECTED_FILE}}** contains a critical setting that must not
 be modified or deleted, even accidentally by root.

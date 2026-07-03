@@ -13,8 +13,8 @@ Requirements:
    - Exists but not readable → stderr error, exit **3**
 
 3. If destination is a directory, copy the file into it.
-   If destination is a path ending in a filename, copy to that exact path
-   (creating parent directories with `mkdir -p`).
+   If destination is a path ending in a filename, copy to that exact path,
+   creating any missing parent directories.
 
 4. After the `cp` command, check `$?` (the exit code of the last command):
    - If `cp` failed, print error to stderr and exit **4**

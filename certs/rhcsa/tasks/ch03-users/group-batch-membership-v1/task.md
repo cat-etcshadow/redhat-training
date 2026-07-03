@@ -1,4 +1,4 @@
-## Batch-manage group membership with gpasswd
+## Replace a group's entire membership list in one command
 
 The group **{{TARGET_GROUP}}** exists and currently has one member:
 **{{OLD_MEMBER}}**. The users **{{NEW_MEMBER1}}**, **{{NEW_MEMBER2}}**, and

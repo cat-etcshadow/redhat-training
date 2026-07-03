@@ -1,12 +1,12 @@
-## Run a background process immune to hangup with nohup
+## Run a background process that survives session end
 
 The script **/usr/local/bin/rhtr-worker.sh** prints a timestamp once per
 second and runs indefinitely.
 
 Your task:
 
-1. Launch **/usr/local/bin/rhtr-worker.sh** in the background using `nohup`,
-   so it would keep running even if your terminal session ended.
+1. Launch **/usr/local/bin/rhtr-worker.sh** in the background, in a way
+   that keeps it running even after your terminal session ends.
 
 2. Redirect its standard output to **{{LOG_FILE}}**.
 

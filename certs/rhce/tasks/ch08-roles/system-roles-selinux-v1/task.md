@@ -4,12 +4,7 @@ Use the `rhel_system_roles.selinux` role to configure SELinux on all managed hos
 
 ### Steps:
 
-1. Ensure the `rhel-system-roles` package is installed on the control node:
-   ```
-   sudo dnf install rhel-system-roles
-   ```
-
-2. Create a playbook **{{PLAYBOOK_FILE}}** for **all** hosts that:
+1. Create a playbook **{{PLAYBOOK_FILE}}** for **all** hosts that:
    - Uses the `rhel_system_roles.selinux` role
    - Sets `selinux_state: {{SELINUX_MODE}}`
    - Sets `selinux_reboot_ok: true` (allows the role to reboot if needed)

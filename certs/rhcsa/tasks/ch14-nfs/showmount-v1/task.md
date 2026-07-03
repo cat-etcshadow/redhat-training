@@ -1,4 +1,4 @@
-## Discover and mount an NFS export with showmount
+## Discover and mount an undocumented NFS export
 
 An NFS server is running on this system (**localhost**), exporting a share,
 but its exact export path is not documented.

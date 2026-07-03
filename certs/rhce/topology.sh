@@ -5,8 +5,9 @@
 # Reads:    RHEL_VERSION (set by exam.sh)
 #
 # Environment:
-#   1 control node:    rhtr-rhce-control-<version>  (Rocky Linux, ansible installed)
-#   3 managed nodes:   rhtr-rhce-node{1,2,3}-<version>
+#   1 control node:    rhtr-rhce-control-<version>  (Rocky Linux, ansible-core +
+#                       ansible-navigator + podman + git installed)
+#   5 managed nodes:   rhtr-rhce-node{1,2,3,4,5}-<version>
 #
 # Network layout (via Incus bridge):
 #   control  → node1 (dev), node2 (test), node3 (prod), node4 (prod), node5 (balancers)
@@ -67,8 +68,9 @@ id student &>/dev/null || useradd -m -s /bin/bash student
 echo "student:student" | chpasswd
 echo "student ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/student
 
-# install ansible-core
-dnf install -y ansible-core python3-pip &>/dev/null
+# install ansible-core, ansible-navigator (+ EE support), git
+dnf install -y ansible-core python3-pip podman git &>/dev/null
+pip3 install --quiet ansible-navigator &>/dev/null
 
 # generate SSH key for student
 su - student -c 'test -f ~/.ssh/id_rsa || ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa'

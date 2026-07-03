@@ -1,6 +1,6 @@
-## Toggle NTP synchronization with timedatectl
+## Toggle NTP synchronization
 
 Your task:
 
-**{{ACTION}}** NTP time synchronization on the system, using `timedatectl`
-(not by starting or stopping `chronyd` directly).
+**{{ACTION}}** NTP time synchronization on the system. The `chronyd`
+service itself must remain running throughout.

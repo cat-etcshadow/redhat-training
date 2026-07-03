@@ -2,8 +2,7 @@
 
 Your task:
 
-1. Install **rsyslog** if not already installed and ensure it is running.
-2. Create a custom rsyslog configuration file at `{{CONF_FILE}}` that:
+1. Create a custom rsyslog configuration file at `{{CONF_FILE}}` that:
    - Captures all **{{FACILITY}}** facility messages at **{{SEVERITY}}** severity or higher
    - Writes them to **{{LOG_FILE}}**
-3. Restart rsyslog to apply the configuration.
+2. rsyslog must be running with this configuration applied.

@@ -9,4 +9,4 @@ Using a text editor (`vim` or `nano`), make the following changes:
 3. Set `TIMEOUT` to `{{TIMEOUT_VAL}}`
 4. Change `DEBUG=true` to `DEBUG=false`
 
-Save the file when done. The grader will verify each key=value pair exactly.
+Save the file when done.

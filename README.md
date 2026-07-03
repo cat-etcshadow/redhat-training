@@ -4,8 +4,7 @@ A CLI-driven lab environment for Red Hat certification exam practice and trainin
 Spins up preconfigured virtual machines via Incus, presents realistic exam tasks,
 and grades your work automatically.
 
-**Currently supported:** RHCSA (EX200)
-**Planned:** RHCE (EX294)
+**Currently supported:** RHCSA (EX200), RHCE (EX294)
 
 **RHEL versions:** 8, 9, 10 (Rocky Linux official Generic Cloud images)
 
@@ -235,6 +234,7 @@ redhat-training/
 │       ├── topology.sh
 │       ├── tasks/
 │       │   ├── ch01-ansible-basics/
+│       │   ├── ch02-navigator-git/
 │       │   ├── ch03-inventory/
 │       │   ├── ch04-playbooks/
 │       │   ├── ch05-variables/
@@ -242,7 +242,8 @@ redhat-training/
 │       │   ├── ch07-files-jinja2/
 │       │   ├── ch08-roles/
 │       │   ├── ch09-vault/
-│       │   └── ch10-troubleshooting/
+│       │   ├── ch10-troubleshooting/
+│       │   └── ch11-storage-lvm/
 │       └── exams/
 │           ├── profiles/
 │           └── fixed/
@@ -374,19 +375,26 @@ One VM, one extra block disk for storage and LVM tasks.
 
 ### RHCE
 
-One control node, two managed nodes. SSH keys pre-configured, Ansible installed,
-inventory pre-written at `/home/student/inventory`.
+One control node, five managed nodes. SSH keys pre-configured from control to
+every node. Control node has `ansible-core`, `ansible-navigator`, `podman`,
+and `git` installed; each task's own `setup.sh`/`params.sh` writes its
+inventory and playbook paths under `/home/student/ansible/`.
 
 | VM name | Role |
 |---|---|
 | `rhtr-rhce-control-<version>` | Ansible control node — candidate works here |
-| `rhtr-rhce-node1-<version>` | Managed node 1 |
-| `rhtr-rhce-node2-<version>` | Managed node 2 |
+| `rhtr-rhce-node1-<version>` | Managed node (dev) |
+| `rhtr-rhce-node2-<version>` | Managed node (test) |
+| `rhtr-rhce-node3-<version>` | Managed node (prod) |
+| `rhtr-rhce-node4-<version>` | Managed node (prod) |
+| `rhtr-rhce-node5-<version>` | Managed node (balancers) |
 
 | Default RHEL | 9 |
 
-Grade scripts run on the control node and verify results across managed nodes
-using Ansible check-mode or direct SSH assertions.
+Grading is mostly static: `grade.sh` validates playbook/config YAML,
+`--syntax-check`, and required module/parameter usage via targeted greps.
+Some tasks additionally run the playbook for real (e.g. `ansible-navigator
+run`) and assert on its output.
 
 ---
 
@@ -508,39 +516,41 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
 
 ## Task library: EX200 exam coverage
 
-**Total tasks: 174 — 149 exam-aligned, 23 extra, 2 borderline**
+**Total tasks: 178 — 155 exam-aligned, 21 extra, 2 borderline**
 
 > **Legend**
 > - `exam` — directly maps to an official EX200 objective
 > - `extra` — good practice, but not an explicit EX200 objective
 > - `borderline` — not in the published objective list, but may appear on the actual exam
 
+Current EX200 objectives target RHEL 10; tasks are marked `exam` if they map to a
+currently published objective, regardless of which `RHEL_VERSIONS` they run against.
+
 | Chapter | Topic | Tasks | Exam | Extra | Task names |
 |---|---|---|---|---|---|
-| ch01-tools | Essential commands | 15 | 15 | — | archive-compress-v1, archive-compress-v2, find-exec-v1, find-files-v1, find-mtime-v1, grep-extended-v1, grep-regex-v1, io-redirect-v1, links-v1, man-docs-v1, scp-transfer-v1, sort-uniq-v1, ssh-remote-exec-v1, tar-selective-v1, vim-edit-v1 |
+| ch01-tools | Essential commands | 16 | 16 | — | archive-compress-v1, archive-compress-v2, find-exec-v1, find-files-v1, find-mtime-v1, grep-extended-v1, grep-regex-v1, io-redirect-v1, links-v1, man-docs-v1, scp-transfer-v1, sort-uniq-v1, ssh-remote-exec-v1, switch-user-v1, tar-selective-v1, vim-edit-v1 |
 | ch02-scripting | Shell scripting | 14 | 14 | — | scripting-args-v1, scripting-arithmetic-v1, scripting-arrays-v1, scripting-case-v1, scripting-defaults-v1, scripting-exit-codes-v1, scripting-for-files-v1, scripting-for-list-v1, scripting-functions-v1, scripting-getopts-v1, scripting-heredoc-v1, scripting-if-v1, scripting-until-v1, scripting-while-v1 |
 | ch03-users | Users and groups | 11 | 11 | — | account-expiry-v1, create-users-v1, create-users-v2, delete-user-v1, group-batch-membership-v1, group-membership-v1, password-aging-v1, sudo-nopasswd-v1, sudo-wheel-group-v1, useradd-custom-v1, usermod-lock-v1 |
 | ch04-permissions | Permissions | 10 | 9 | 1 | acl-mask-v1, acl-revoke-v1, acl-v1, ~~chattr-immutable-v1~~, fix-perms-v1, numeric-perms-v1, setgid-dir-v1, sticky-bit-v1, suid-sgid-audit-v1, umask-v1 |
 | ch05-selinux | SELinux | 12 | 12 | — | boolean-httpd-v1, boolean-nfs-v1, fix-file-context-v1, fix-file-context-v2, selinux-boolean-ftp-v1, selinux-boolean-set-v1, selinux-mode-v1, selinux-port-ssh-v1, selinux-port-v1, selinux-process-context-v1, selinux-restorecon-v1, troubleshoot-audit-v1 |
 | ch06-performance | Process management | 8 | 8 | — | disown-background-v1, job-control-v1, kill-signals-v1, nice-launch-v1, process-priority-v1, ps-filter-report-v1, top-batch-report-v1, tuned-profile-v1 |
-| ch07-scheduling | Scheduling | 9 | 7 | 2 | at-batch-v1, at-job-v1, at-manage-v1, cron-dow-v1, cron-env-v1, cron-job-v1, cron-system-v1, ~~systemd-timer-v1~~, ~~tmpfiles-v1~~ |
-| ch08-packages | Software management | 10 | 8 | 2 | ~~dnf-autoremove-v1~~, dnf-config-manager-v1, dnf-group-v1, ~~dnf-history-undo-v1~~, dnf-install-v1, dnf-local-rpm-v1, dnf-module-v1, dnf-reinstall-v1, dnf-search-provides-v1, repo-enable-v1 |
+| ch07-scheduling | Scheduling | 9 | 8 | 1 | at-batch-v1, at-job-v1, at-manage-v1, cron-dow-v1, cron-env-v1, cron-job-v1, cron-system-v1, systemd-timer-v1, ~~tmpfiles-v1~~ |
+| ch08-packages | Software management | 11 | 9 | 2 | ~~dnf-autoremove-v1~~, dnf-config-manager-v1, dnf-group-v1, ~~dnf-history-undo-v1~~, dnf-install-v1, dnf-local-rpm-v1, dnf-module-v1, dnf-reinstall-v1, dnf-search-provides-v1, flatpak-v1, repo-enable-v1 |
 | ch09-storage | Local storage | 12 | 9 | 3 | add-partition-ext4-v1, add-partition-gpt-v1, add-partition-vfat-v1, add-partition-xfs-v1, delete-partition-v1, ~~fstab-noauto-v1~~, ~~mount-options-v1~~, persistent-mount-label-v1, persistent-mount-uuid-v1, ~~resize-partition-v1~~, swap-file-v1, swap-partition-v1 |
 | ch10-lvm | LVM | 10 | 7 | 3 | create-lv-v1, extend-lv-ext4-v1, extend-lv-v1, lv-ext4-v1, lv-extend-percentage-v1, lv-remove-v1, ~~lv-rename-v1~~, ~~lvm-snapshot-v1~~, ~~stratis-pool-v1~~, vg-extend-v1 |
-| ch11-boot | Boot process | 11 | 10 | 1 | boot-target-v1, custom-unit-v1, disable-service-v1, fix-broken-service-v1, grub-param-v1, grub-timeout-v1, grubby-remove-param-v1, repair-fstab-v1, reset-root-password-v1, service-enable-v1, ~~service-mask-v1~~ |
+| ch11-boot | Boot process | 13 | 12 | 1 | boot-target-v1, custom-unit-v1, disable-service-v1, fix-broken-service-v1, grub-param-v1, grub-timeout-v1, grubby-remove-param-v1, isolate-target-v1, reboot-shutdown-v1, repair-fstab-v1, reset-root-password-v1, service-enable-v1, ~~service-mask-v1~~ |
 | ch12-logging | Logging and time | 11 | 8 | 3 | ~~chrony-server-v1~~, journalctl-priority-v1, journalctl-since-v1, journalctl-v1, journalctl-vacuum-v1, journald-persistent-v1, journald-size-v1, ~~logrotate-v1~~, ntp-toggle-v1, ~~rsyslog-rule-v1~~, timedatectl-v1 |
-| ch13-networking | Networking | 11 | 8 | 3 | dns-resolver-v1, dns-search-domain-v1, hostname-dns-v1, ~~ipv6-addr-v1~~, ~~nmcli-bond-v1~~, nmcli-connection-add-v1, nmcli-secondary-ip-v1, routing-v1, ~~ssh-hardening-v1~~, ssh-key-auth-v1, static-ip-v1 |
+| ch13-networking | Networking | 11 | 9 | 2 | dns-resolver-v1, dns-search-domain-v1, hostname-dns-v1, ipv6-addr-v1, ~~nmcli-bond-v1~~, nmcli-connection-add-v1, nmcli-secondary-ip-v1, routing-v1, ~~ssh-hardening-v1~~, ssh-key-auth-v1, static-ip-v1 |
 | ch14-nfs | NFS / Autofs | 8 | 5 | 3 | autofs-direct-v1, autofs-v1, ~~nfs-automount-systemd-v1~~, ~~nfs-export-v1~~, nfs-mount-options-v1, nfs-mount-v1, nfs-unmount-v1, ~~showmount-v1~~ |
 | ch15-firewall | Firewall | 9 | 9 | — | firewall-add-port-v1, firewall-add-service-v1, firewall-default-zone-v1, firewall-masquerade-v1, firewall-port-forward-v1, firewall-remove-service-v1, firewall-rich-rule-v1, firewall-runtime-permanent-v1, firewall-zone-v1 |
 | ch16-containers | Containers | 13 | 9 | 4 | container-env-v1, container-exec-logs-v1, ~~container-healthcheck-v1~~, container-lifecycle-v1, container-network-v1, container-registry-v1, ~~container-resource-limits-v1~~, container-service-v1, container-storage-v1, container-user-service-v1, run-container-v1, *container-build-v1*, *container-inspect-v1* |
-| **Total** | | **174** | **149** | **23** | *italic* = borderline |
+| **Total** | | **178** | **155** | **21** | *italic* = borderline |
 
-### Extra tasks (23)
+### Extra tasks (21)
 
 | Task | Why it's extra |
 |---|---|
 | `ch04/chattr-immutable-v1` | File immutability via `chattr`/`lsattr` is not an explicit EX200 objective |
-| `ch07/systemd-timer-v1` | Systemd timers are not listed in EX200 objectives (only `at` and `cron`) |
 | `ch07/tmpfiles-v1` | tmpfiles.d management is not an EX200 objective |
 | `ch08/dnf-history-undo-v1` | `dnf history undo` is not an explicit EX200 objective verb |
 | `ch08/dnf-autoremove-v1` | Orphaned-dependency cleanup with `dnf autoremove` is not an explicit EX200 objective |
@@ -554,7 +564,6 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
 | `ch12/chrony-server-v1` | EX200 tests NTP client sync, not running your own NTP server |
 | `ch12/rsyslog-rule-v1` | Advanced rsyslog routing rules are not in EX200 objectives |
 | `ch12/logrotate-v1` | Logrotate configuration is not an explicit EX200 objective |
-| `ch13/ipv6-addr-v1` | IPv6 configuration is not explicitly listed in EX200 objectives |
 | `ch13/nmcli-bond-v1` | Network bonding is not in EX200 networking objectives |
 | `ch13/ssh-hardening-v1` | Disabling root/password SSH login is good practice but not an explicit EX200 objective |
 | `ch14/nfs-automount-systemd-v1` | `x-systemd.automount` is an alternative to autofs, not the technique named in EX200 objectives |
@@ -574,18 +583,28 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
 
 ## Task library: EX294 exam coverage
 
-**Total tasks: 44 — all exam-aligned**
+**Total tasks: 55 — all exam-aligned**
 
 | Chapter | Topic | Tasks | Exam | Extra | Task names |
 |---|---|---|---|---|---|
-| ch01-ansible-basics | Ansible fundamentals | 4 | 4 | — | ad-hoc-command-v1, ansible-cfg-advanced-v1, install-configure-v1, privilege-escalation-v1 |
+| ch01-ansible-basics | Ansible fundamentals | 6 | 6 | — | ad-hoc-command-v1, ansible-cfg-advanced-v1, ansible-doc-v1, install-configure-v1, managed-nodes-v1, privilege-escalation-v1 |
+| ch02-navigator-git | ansible-navigator, Execution Environments, Git | 3 | 3 | — | ansible-navigator-config-v1, execution-environment-v1, git-playbook-repo-v1 |
 | ch03-inventory | Inventory | 4 | 4 | — | group-vars-v1, host-vars-v1, static-inventory-v1, yaml-inventory-v1 |
-| ch04-playbooks | Playbooks | 5 | 5 | — | error-handling-v1, packages-playbook-v1, packages-playbook-v2, service-playbook-v1, yum-repo-playbook-v1 |
+| ch04-playbooks | Playbooks | 9 | 9 | — | error-handling-v1, firewall-playbook-v1, nmcli-playbook-v1, packages-playbook-v1, packages-playbook-v2, selinux-playbook-v1, service-playbook-v1, user-group-playbook-v1, yum-repo-playbook-v1 |
 | ch05-variables | Variables and facts | 4 | 4 | — | custom-facts-v1, hwreport-v1, registered-vars-v1, set-fact-v1 |
-| ch06-tasks-control | Task control | 6 | 6 | — | block-rescue-v1, cron-playbook-v1, handlers-v1, include-tasks-v1, issue-file-v1, tags-v1 |
+| ch06-tasks-control | Task control | 8 | 8 | — | block-rescue-v1, conditionals-v1, cron-playbook-v1, handlers-v1, include-tasks-v1, issue-file-v1, loops-v1, tags-v1 |
 | ch07-files-jinja2 | Files and templates | 4 | 4 | — | archive-fetch-v1, gen-hosts-v1, lineinfile-v1, template-motd-v1 |
 | ch08-roles | Roles and collections | 6 | 6 | — | collections-posix-v1, create-role-v1, galaxy-requirements-v1, role-defaults-v1, system-roles-selinux-v1, system-roles-timesync-v1 |
 | ch09-vault | Ansible Vault | 4 | 4 | — | create-vault-v1, rekey-vault-v1, use-vault-users-v1, vault-group-vars-v1 |
 | ch10-troubleshooting | Troubleshooting | 4 | 4 | — | check-diff-mode-v1, debug-vars-v1, fix-logic-v1, fix-syntax-v1 |
 | ch11-storage-lvm | Storage automation | 3 | 3 | — | lvm-playbook-v1, lvm-playbook-v2, partition-playbook-v1 |
-| **Total** | | **44** | **44** | **0** | |
+| **Total** | | **55** | **55** | **0** | |
+
+### Deliberately excluded
+
+The EX294 objectives page also lists a VS Code editor workflow (playbook creation,
+`ansible-navigator` integration inside VS Code, running playbooks from dev
+containers via the editor). That's not testable by a headless `grade.sh` in a
+VM with no GUI or editor state to assert on, so it's intentionally not
+represented as a task here. Everything else on the objectives page has a
+corresponding task.

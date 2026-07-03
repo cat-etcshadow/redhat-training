@@ -1,6 +1,6 @@
 POINTS=6
 TOPIC="performance"
 CHAPTER=6
-TITLE="Run a background process immune to hangup with nohup"
+TITLE="Run a background process that survives session end"
 DIFFICULTY="easy"
 RHEL_VERSIONS="8 9 10"

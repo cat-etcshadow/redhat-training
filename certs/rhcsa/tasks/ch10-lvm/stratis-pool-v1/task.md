@@ -4,15 +4,13 @@ An extra **{{DISK_SIZE}}** block device is attached to the system.
 
 Your task:
 
-1. Install the Stratis packages and enable the daemon.
+1. Identify the extra block device.
 
-2. Identify the extra block device.
+2. Create a Stratis **pool** named **{{POOL_NAME}}** using the extra disk.
 
-3. Create a Stratis **pool** named **{{POOL_NAME}}** using the extra disk.
+3. Create a Stratis **filesystem** named **{{FS_NAME}}** inside the pool.
 
-4. Create a Stratis **filesystem** named **{{FS_NAME}}** inside the pool.
-
-5. Create mount point **{{MOUNT_POINT}}** and mount the filesystem **persistently**
+4. Create mount point **{{MOUNT_POINT}}** and mount the filesystem **persistently**
    via `/etc/fstab` using the filesystem's UUID.
 
-6. Mount all entries in `/etc/fstab`.
+5. The filesystem must be mounted at **{{MOUNT_POINT}}** without requiring a reboot.

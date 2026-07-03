@@ -1,4 +1,4 @@
-## Add a kernel parameter via grubby
+## Add a kernel parameter persistently
 
 Your task:
 

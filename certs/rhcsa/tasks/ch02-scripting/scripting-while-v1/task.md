@@ -11,6 +11,6 @@ Create an executable script at **{{SCRIPT_PATH}}** that:
 
 3. For each username in the file:
    - If the user **already exists**, print: `SKIP: <name> already exists`
-   - If the user **does not exist**, create it with `useradd -M` and print: `CREATED: <name>`
+   - If the user **does not exist**, create it without a home directory and print: `CREATED: <name>`
 
 4. Exit **0** when done.

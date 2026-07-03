@@ -1,6 +1,6 @@
 ## Configure Time Synchronisation Using RHEL System Roles
 
-Install the `rhel-system-roles` package if not already present, then create a playbook **{{PLAYBOOK_FILE}}** that:
+Create a playbook **{{PLAYBOOK_FILE}}** that:
 
 1. Runs on **all** managed hosts
 2. Uses the `timesync` RHEL system role

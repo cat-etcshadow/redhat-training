@@ -1,4 +1,4 @@
-## Run a container as a systemd service using quadlet or generate systemd
+## Run a container as a systemd service
 
 The image `registry.access.redhat.com/ubi9/ubi` is already available on the system.
 Make a container start automatically with the system as a systemd service.

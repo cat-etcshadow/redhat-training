@@ -260,99 +260,39 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 
 ---
 
-## Phase 6 — RHCE cert definition
+## Phase 6 — RHCE cert definition ✓
 
-- [ ] `certs/rhce/cert.conf` — PASS_THRESHOLD=70, DEFAULT_DURATION=240, RHEL_VERSIONS="8 9 10"
-- [ ] `certs/rhce/topology.sh` — create `rhtr-rhce-control-<ver>`, `rhtr-rhce-node1-<ver>`,
-      `rhtr-rhce-node2-<ver>`; configure SSH keys; install Ansible on control; write inventory
+- [x] `certs/rhce/cert.conf` — PASS_THRESHOLD=70, DEFAULT_DURATION=180, RHEL_VERSIONS="9"
+- [x] `certs/rhce/topology.sh` — creates `rhtr-rhce-control-<ver>` +
+      `rhtr-rhce-node{1..5}-<ver>`; configures SSH keys; installs ansible-core,
+      ansible-navigator, podman, git on control
 
-### Incus features to use in the RHCE topology (confirmed available in Incus codebase)
+### Incus features considered for the RHCE topology — not adopted
 
-**Isolated network between nodes:**
-Create a dedicated bridge with no uplink so managed nodes are reachable only from
-the control node and not from the external network. Attach control + nodes to it.
-```bash
-incus network create rhtr-rhce-net --type=bridge
-# No uplink config → isolated. Then attach each VM:
-incus config device add rhtr-rhce-control-9 eth1 nic network=rhtr-rhce-net
-incus config device add rhtr-rhce-node1-9   eth0 nic network=rhtr-rhce-net
-incus config device add rhtr-rhce-node2-9   eth0 nic network=rhtr-rhce-net
-```
-The control node gets two NICs: eth0 for Incus host access (incus exec / shell),
-eth1 for the isolated exam network. Managed nodes get only the isolated NIC.
-
-**Cloud-init for managed node first-boot:**
-Pass `cloud-init.user-data` at launch to pre-configure managed nodes without a
-post-boot setup script. Handles: create `ansible` user, add SSH authorized key,
-install Python, disable requiretty in sudoers. All done before `vm_wait_ready` returns.
-```bash
-incus launch rocky9 rhtr-rhce-node1-9 --vm \
-  --profile default \
-  --profile rhtr-rhce-node \
-  --config cloud-init.user-data="$(cat certs/rhce/cloud-init/managed-node.yaml)"
-```
-Create `certs/rhce/cloud-init/managed-node.yaml` with the cloud-init config.
-
-**Profile for RHCE nodes:**
-Create `rhtr-rhce-node` profile (1 vCPU, 1 GiB RAM — managed nodes are lightweight).
-Create `rhtr-rhce-control` profile (2 vCPU, 2 GiB RAM — Ansible runs here).
+Isolated bridge network and cloud-init first-boot config (see git history for
+the original proposal) were considered but not used. The implemented
+`topology.sh` uses the shared `default` bridged profile plus post-boot
+`vm_exec` bootstrap heredocs instead — simpler, and sufficient since managed
+nodes don't need to be reachable from outside the host.
 
 ---
 
-## Phase 7 — RHCE task library
+## Phase 7 — RHCE task library ✓
 
-### ch01 — Ansible basics and ad-hoc commands
-- [ ] `adhoc-ping-v1`
-- [ ] `adhoc-package-v1`
-
-### ch03 — Inventory
-- [ ] `static-inventory-v1`
-- [ ] `group-vars-v1`
-
-### ch04 — Playbooks
-- [ ] `basic-playbook-v1`
-- [ ] `handlers-v1`
-- [ ] `multiplay-v1`
-
-### ch05 — Variables and facts
-- [ ] `magic-vars-v1`
-- [ ] `registered-vars-v1`
-- [ ] `facts-filter-v1`
-
-### ch06 — Task control
-- [ ] `loops-v1`
-- [ ] `conditionals-v1`
-- [ ] `tags-v1`
-- [ ] `error-handling-v1`
-
-### ch07 — Files and Jinja2
-- [ ] `template-v1`
-- [ ] `lineinfile-v1`
-- [ ] `copy-fetch-v1`
-
-### ch08 — Roles
-- [ ] `create-role-v1`
-- [ ] `role-galaxy-v1`
-- [ ] `role-requirements-v1`
-
-### ch09 — Vault
-- [ ] `encrypt-var-v1`
-- [ ] `encrypt-file-v1`
-- [ ] `vault-in-playbook-v1`
-
-### ch10 — Troubleshooting
-- [ ] `syntax-error-v1`
-- [ ] `failed-task-debug-v1`
+55 tasks across 11 chapters (`ch01-ansible-basics` through `ch11-storage-lvm`,
+including `ch02-navigator-git`). See the EX294 coverage table in README.md for
+the full, current task list — this phase's original per-chapter task-name
+plan is superseded by what's actually implemented and is no longer tracked
+here to avoid drift.
 
 ---
 
-## Phase 8 — RHCE profiles and fixed exams
+## Phase 8 — RHCE profiles and fixed exams ✓
 
-- [ ] `certs/rhce/exams/profiles/full.conf`
-- [ ] `certs/rhce/exams/profiles/topic-playbooks.conf`
-- [ ] `certs/rhce/exams/profiles/topic-roles.conf`
-- [ ] `certs/rhce/exams/profiles/topic-vault.conf`
-- [ ] `certs/rhce/exams/fixed/full-v1.conf`
+- [x] `certs/rhce/exams/profiles/full.conf`
+- [x] `certs/rhce/exams/profiles/inventory.conf`, `playbooks.conf`, `roles.conf`,
+      `troubleshooting.conf`, `variables.conf`, `vault.conf`, `navigator-git.conf`
+- [x] `certs/rhce/exams/fixed/full-v1.conf`, `full-v2.conf`
 
 ---
 
@@ -392,6 +332,29 @@ snapshot, config, profile). Storage and image commands stay as plain `incus`.
   that shows what the VM is doing during the exam without polling
 - `incus export / import` — full VM backup including snapshots; useful for
   distributing pre-configured exam environments
+
+---
+
+## Phase 10 — Objective-gap closure (EX200 RHEL 10 / EX294 navigator+EE) ✓
+
+Cross-checked the task library against Red Hat's currently published EX200 and
+EX294 objectives and closed every gap found:
+
+- [x] `ch08-packages/flatpak-v1` — Flatpak repo access + install/remove
+      (new "Manage software" objective category on EX200)
+- [x] `ch01-tools/switch-user-v1` — `su -` full login shell vs `su`
+- [x] `ch11-boot/reboot-shutdown-v1` — schedule/cancel with `shutdown`
+- [x] `ch11-boot/isolate-target-v1` — `systemctl isolate` vs `set-default`
+- [x] `certs/rhcsa` README table — reclassified `systemd-timer-v1` and
+      `ipv6-addr-v1` from extra to exam-aligned (both are explicit objectives
+      on the current EX200 page; the table had gone stale)
+- [x] `ch02-navigator-git/` (new RHCE chapter) — `ansible-navigator-config-v1`,
+      `execution-environment-v1`, `git-playbook-repo-v1`
+- [x] `certs/rhce/topology.sh` — control node now installs `ansible-navigator`,
+      `podman`, `git` (previously only `ansible-core`)
+- [x] Wired new tasks into `certs/rhcsa` and `certs/rhce` exam profiles/fixed exams
+- [x] Documented the VS Code EX294 objective as intentionally excluded
+      (not gradable headlessly — no GUI/editor state to assert on)
 
 ---
 

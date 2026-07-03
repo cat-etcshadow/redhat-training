@@ -4,9 +4,8 @@ An NFS server is exporting **/exports/shared** from host **nfsserver.example.com
 
 Your task:
 
-1. Install the **nfs-utils** package if not already present.
-2. Create the local mount point **/mnt/nfsshare**.
-3. Mount the NFS share **nfsserver.example.com:/exports/shared** at
+1. Create the local mount point **/mnt/nfsshare**.
+2. Mount the NFS share **nfsserver.example.com:/exports/shared** at
    **/mnt/nfsshare** persistently in `/etc/fstab` with options
    `nfsvers=4,soft,timeo=30`.
-4. Run `mount -a` to apply the fstab entry.
+3. The share must be mounted and active without requiring a reboot.
