@@ -100,10 +100,12 @@ NODEBOOT
   # Add managed node IPs to /etc/hosts on control node
   info "Configuring /etc/hosts on control node..."
   for node in "${NODE_NAMES[@]}"; do
-    local short; short="${node%%-"${RHEL_VERSION}"}"  # strip version suffix
+    # inventory hostnames are the bare node names (node1..node5); strip both the
+    # rhtr-rhce- prefix and the -<version> suffix off the full VM name
+    local short; short="${node#rhtr-rhce-}"; short="${short%-"${RHEL_VERSION}"}"
     local ip; ip=$(incus info "$node" | awk '/inet /{print $2}' | cut -d/ -f1 | head -1)
     [[ -n "$ip" ]] && incus exec "$CONTROL_NAME" -- bash -c \
-      "grep -q '$short' /etc/hosts || echo '$ip $short' >> /etc/hosts"
+      "grep -qw '$short' /etc/hosts || echo '$ip $short' >> /etc/hosts"
   done
 
   ok "RHCE topology ready. Control: $CONTROL_NAME. Nodes: ${NODE_NAMES[*]}"

@@ -25,6 +25,7 @@ _select_weighted() {
   for entry in "${TOPICS[@]}"; do
     local chapter="${entry%%:*}"
     local count="${entry##*:}"
+    [[ "$count" =~ ^[0-9]+$ ]] || die "Invalid task count '$count' in profile entry '$entry'"
     [[ $count -eq 0 ]] && continue
     _select_random_from_chapter "$chapter" "$count"
   done

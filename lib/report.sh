@@ -88,6 +88,35 @@ _print_task_row() {
     "$result" "$num" "$name" "$max_pts"
 }
 
+# Expand the session's parameter values into a solution for display, so a
+# trainee sees their instance's real values instead of literal $VAR references
+# (task.md gets the same treatment via _render_task_md). Only the task's own
+# param names are expanded — envsubst with an explicit list leaves all other
+# shell syntax ($1, $(...), unrelated ${vars}) in the script untouched. Falls
+# back to the raw file when there are no params or envsubst is unavailable.
+_render_solution() {
+  local task_dir="$1" solution="$2"
+  local slug; slug=$(task_slug "$task_dir")
+  local params_file="$STATE_DIR/task-params/${slug}.env"
+  [[ -f "$params_file" ]] || params_file="$RHTR_DIR/.last-session/task-params/${slug}.env"
+
+  if [[ ! -f "$params_file" ]] || ! command -v envsubst >/dev/null 2>&1; then
+    cat "$solution"; return
+  fi
+
+  (
+    local varlist="" key val
+    while IFS='=' read -r key val; do
+      [[ -z "$key" || "$key" == \#* ]] && continue
+      val="${val%\"}"; val="${val#\"}"
+      val="${val%\'}"; val="${val#\'}"
+      export "$key=$val"
+      varlist+="\$$key "
+    done < "$params_file"
+    envsubst "$varlist" < "$solution"
+  )
+}
+
 # Print a failed task's solution.sh, if one exists (train mode only — called
 # from grade_all_tasks after diagnostics, never in exam mode).
 _show_solution() {
@@ -99,7 +128,7 @@ _show_solution() {
   local line
   while IFS= read -r line; do
     echo -e "   ${C_DIM}$line${C_RESET}"
-  done < "$solution"
+  done < <(_render_solution "$task_dir" "$solution")
   echo ""
 }
 

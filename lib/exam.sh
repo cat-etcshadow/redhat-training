@@ -92,6 +92,17 @@ cmd_train() {
 }
 
 # ── shared session start ──────────────────────────────────────────────────────
+# EXIT-trap cleanup for _start_session: if setup was interrupted after the
+# topology came up, destroy the VMs before wiping state so nothing is orphaned.
+_start_session_cleanup() {
+  if [[ "${_SESSION_TOPOLOGY_UP:-0}" == "1" ]]; then
+    warn "Session setup interrupted — tearing down VMs..."
+    topology_destroy || warn "Topology teardown failed; check 'incus list' for leftover VMs"
+  fi
+  rm -rf "$STATE_DIR"
+  die 'Session setup failed — state cleaned up'
+}
+
 _start_session() {
   local mode="$1"; shift
   local selected_tasks=("$@")
@@ -99,9 +110,12 @@ _start_session() {
   # Verify image exists before doing anything
   vm_require_image "rocky${RHEL_VERSION}"
 
-  # Persist state; trap ensures cleanup if anything below fails
+  # Persist state; trap ensures cleanup if anything below fails. Once
+  # topology_create starts, cleanup must also tear down any VMs it created —
+  # otherwise an interrupt orphans them while wiping the state that tracks them.
   mkdir -p "$STATE_DIR"
-  trap "rm -rf '$STATE_DIR'; die 'Session setup failed — state cleaned up'" EXIT
+  _SESSION_TOPOLOGY_UP=0
+  trap '_start_session_cleanup' EXIT
   echo "$CERT" > "$STATE_DIR/cert"
   printf '%s\n' "${selected_tasks[@]}" > "$STATE_DIR/active-tasks.txt"
 
@@ -132,6 +146,7 @@ EOF
 
   # Build VM environment via topology
   info "Building VM environment (RHEL $RHEL_VERSION)..."
+  _SESSION_TOPOLOGY_UP=1
   topology_create
 
   info "Creating pre-exam snapshot..."
@@ -397,11 +412,16 @@ _run_task_script() {
 
   local tmp rc=0
   tmp=$(mktemp --suffix=.sh)
+  # strip the original shebang only if line 1 actually is one — otherwise a
+  # script that opens with a comment or code would silently lose its first line
+  local body_from=1
+  IFS= read -r _firstline < "$script"
+  [[ "$_firstline" == '#!'* ]] && body_from=2
   {
     printf '#!/usr/bin/env bash\n'
     cat "$params_file"
     printf '\n'
-    tail -n +2 "$script"   # skip the original shebang
+    tail -n +$body_from "$script"
   } > "$tmp"
   chmod 0700 "$tmp"
   vm_exec_script "$vm" "$tmp" || rc=$?
