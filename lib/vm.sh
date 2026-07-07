@@ -193,6 +193,17 @@ vm_profile_ensure() {
   for kv in "$@"; do
     incus profile set "$profile" "$kv"
   done
+
+  # RHEL-family kernels (8/9/10 and derivatives, including Rocky) ship no 9p
+  # driver at all, so Incus's default 9p-based agent config share can never
+  # mount — see vm_ensure_agent_config_drive for the full story. Adding the
+  # device to the profile (rather than the instance, post-launch) matters:
+  # Incus only attaches `source=agent:config` correctly when it's present
+  # *before* the VM's first start — adding it to an already-running instance
+  # is a silent no-op until the next full stop/start cycle. Putting it on
+  # the profile guarantees it's there from `incus launch` on.
+  incus profile device show "$profile" 2>/dev/null | grep -q '^agent-config:' \
+    || incus profile device add "$profile" agent-config disk source=agent:config
 }
 
 # ── image guard ───────────────────────────────────────────────────────────────
@@ -264,11 +275,17 @@ EOF
 _vm_inject_agent_bootstrap() {
   local alias="$1"
   local fingerprint
-  fingerprint=$(incus image list --format csv | awk -F',' -v a="$alias" '$1==a{print $2}')
+  # `incus image list` truncates fingerprints to 12 chars — the on-disk
+  # rootfs is named after the full SHA256, so a truncated name never matches
+  # any real file. `incus image info` prints the untruncated fingerprint.
+  fingerprint=$(incus image info "$alias" 2>/dev/null | awk '/^Fingerprint:/{print $2}')
   [[ -n "$fingerprint" ]] || die "Image '$alias' not found in Incus image store."
 
   local rootfs="/var/lib/incus/images/${fingerprint}.rootfs"
-  [[ -f "$rootfs" ]] || die "Rootfs not found: $rootfs"
+  # /var/lib/incus/images is root-only (0700) — a plain `[[ -f ]]` as a
+  # non-root user always reports "not found" (permission denied on the
+  # parent dir), regardless of whether the file is actually there.
+  sudo test -f "$rootfs" || die "Rootfs not found: $rootfs"
 
   local mnt
   mnt="$(mktemp -d)"
@@ -284,43 +301,166 @@ _vm_inject_agent_bootstrap() {
 
   sudo mount "$root_part" "$mnt"
 
-  sudo mkdir -p "$mnt/usr/local/libexec"
-  sudo mkdir -p "$mnt/etc/systemd/system/multi-user.target.wants"
+  # Install the *real* incus-agent unit, setup script, and udev rule — the
+  # same three files Incus writes into every VM's per-instance config drive
+  # at .../<instance>/config/{systemd,udev}/. Those files' own install.sh
+  # says outright: "This script must be run from within the 9p mount" — the
+  # agent config drive is a 9p share (tag "config"), not a block device, so
+  # an earlier version of this function that did
+  # `mount /dev/disk/by-label/incus-agent ...` could never find anything to
+  # mount. Writing these three static files directly into the rootfs here
+  # reproduces exactly what a distrobuilder-built VM image ships out of the
+  # box: a udev rule fires when the virtio-serial port
+  # (virtio-ports/org.linuxcontainers.incus) appears, which tags the device
+  # with SYSTEMD_WANTS=incus-agent.service; that service's ExecStartPre
+  # mounts the 9p config share, copies the agent binary out of it into
+  # /run/incus_agent, then the main ExecStart launches it. No manual
+  # `systemctl enable` needed — the unit has no [Install] section because
+  # the udev TAG+="systemd" is what pulls it in.
+  sudo mkdir -p "$mnt/usr/lib/udev/rules.d"
+  sudo mkdir -p "$mnt/usr/lib/systemd/system"
 
-  sudo tee "$mnt/usr/local/libexec/incus-agent-bootstrap.sh" > /dev/null << 'SCRIPT'
-#!/bin/bash
-set -ex
-mkdir -p /run/incus-agent-install
-mount /dev/disk/by-label/incus-agent /run/incus-agent-install
-cd /run/incus-agent-install
-bash install.sh
-cd /
-umount /run/incus-agent-install
-rmdir /run/incus-agent-install
-systemctl daemon-reload
-systemctl start incus-agent.service
-SCRIPT
+  sudo tee "$mnt/usr/lib/udev/rules.d/99-incus-agent.rules" > /dev/null << 'RULES'
+SYMLINK=="virtio-ports/org.linuxcontainers.incus", TAG+="systemd", ENV{SYSTEMD_WANTS}+="incus-agent.service"
+RULES
 
-  sudo tee "$mnt/usr/lib/systemd/system/incus-agent-bootstrap.service" > /dev/null << 'UNIT'
+  # ExecStartPre path below is TARGET/systemd/incus-agent-setup with
+  # TARGET=/usr/lib — the same substitution install.sh performs when it
+  # picks a writable prefix (it tries /usr/lib, /lib, /etc in that order).
+  sudo tee "$mnt/usr/lib/systemd/system/incus-agent.service" > /dev/null << 'UNIT'
 [Unit]
-Description=Incus Agent Bootstrap (first boot only)
-ConditionPathExists=!/usr/lib/systemd/system/incus-agent.service
-After=sysinit.target
-Wants=sysinit.target
+Description=Incus - agent
+Documentation=https://linuxcontainers.org/incus/docs/main/
+Before=multi-user.target cloud-init.target cloud-init.service cloud-init-local.service
+DefaultDependencies=no
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
-StandardOutput=kmsg
-StandardError=kmsg
-ExecStart=/bin/bash /usr/local/libexec/incus-agent-bootstrap.sh
-
-[Install]
-WantedBy=multi-user.target
+Type=notify
+WorkingDirectory=-/run/incus_agent
+ExecStartPre=/usr/lib/systemd/incus-agent-setup
+ExecStart=/run/incus_agent/incus-agent
+Restart=on-failure
+RestartSec=5s
+StartLimitInterval=60
+StartLimitBurst=10
 UNIT
 
-  sudo ln -sf /usr/lib/systemd/system/incus-agent-bootstrap.service \
-    "$mnt/etc/systemd/system/multi-user.target.wants/incus-agent-bootstrap.service"
+  # Same as the stock incus-agent-setup, except the final relabel step uses
+  # chcon instead of semanage fcontext + restorecon — see the chcon call
+  # below for why.
+  sudo tee "$mnt/usr/lib/systemd/incus-agent-setup" > /dev/null << 'SETUP'
+#!/bin/sh
+set -eu
+PREFIX="/run/incus_agent"
+CDROM="/dev/disk/by-label/incus-agent"
+
+mount_cdrom() {
+    mount "${CDROM}" "${PREFIX}.mnt" >/dev/null 2>&1
+}
+
+mount_9p() {
+    modprobe 9pnet_virtio >/dev/null 2>&1 || true
+    mount -t 9p config "${PREFIX}.mnt" -o access=0,trans=virtio,size=1048576 >/dev/null 2>&1
+}
+
+fail() {
+    if [ -x "${PREFIX}/incus-agent" ]; then
+        echo "${1}, reusing existing agent"
+        exit 0
+    fi
+
+    umount -l "${PREFIX}" >/dev/null 2>&1 || true
+    eject "${CDROM}" >/dev/null 2>&1 || true
+    rmdir "${PREFIX}" >/dev/null 2>&1 || true
+    echo "${1}, failing"
+
+    exit 1
+}
+
+mkdir -p "${PREFIX}.mnt"
+mount_9p || mount_cdrom || fail "Couldn't mount 9p or cdrom"
+
+umount -l "${PREFIX}" >/dev/null 2>&1 || true
+mkdir -p "${PREFIX}"
+mount -t tmpfs tmpfs "${PREFIX}" -o mode=0700,size=50M
+
+cp -Ra "${PREFIX}.mnt/"* "${PREFIX}"
+
+umount "${PREFIX}.mnt"
+rmdir "${PREFIX}.mnt"
+
+eject "${CDROM}" >/dev/null 2>&1 || true
+
+chown -R root:root "${PREFIX}"
+
+if [ ! -e "${PREFIX}/incus-agent" ] && [ -e "${PREFIX}/lxd-agent" ]; then
+    ln -s lxd-agent "${PREFIX}"/incus-agent
+fi
+
+# `cp -Ra` preserves the ISO source's SELinux context, so the copied binary
+# lands as iso9660_t — init_t can't execute that, and incus-agent.service
+# fails every boot. The stock fix (semanage fcontext + restorecon) hangs
+# indefinitely this early in boot (confirmed: waited 3+ minutes, it never
+# returned) — likely a policy-store lock or dependency not up yet.  chcon
+# just rewrites the xattr in place, no policy-store write involved, and
+# returns instantly.
+chcon -t bin_t "${PREFIX}/incus-agent" >/dev/null 2>&1 || true
+
+exit 0
+SETUP
+
+  sudo chmod 0644 "$mnt/usr/lib/udev/rules.d/99-incus-agent.rules" \
+                  "$mnt/usr/lib/systemd/system/incus-agent.service"
+  sudo chmod 0755 "$mnt/usr/lib/systemd/incus-agent-setup"
+
+  # Files written through the nbd mount get their security.selinux xattr
+  # from the *host* kernel's SELinux module, same as any other write(2).
+  # When that module is live (`selinuxenabled`), plain `restorecon` labels
+  # the new files correctly, same as it would for any other file the host
+  # writes into a mounted filesystem.
+  #
+  # When the host kernel has no SELinux module loaded at all — WSL2,
+  # Ubuntu, any non-RHEL host without SELinux enabled — the files land
+  # completely unlabeled instead. The guest sees them as unlabeled_t;
+  # init_t is not allowed to execute unlabeled_t, so incus-agent-setup's
+  # ExecStartPre gets an AVC denial on first boot (confirmed via
+  # `incus console --show-log`). `restorecon`/`chcon` can't fix this from
+  # the host side either — both call libselinux's is_selinux_enabled(),
+  # which checks the *host* kernel, and silently no-op when it's false.
+  # `/.autorelabel` was tried and works, but it forces a guest-triggered
+  # reboot to apply — and Incus only attaches the dynamically-generated
+  # `agent:config` CD-ROM at VM starts *it* initiates, not at a reboot the
+  # guest triggers internally, so the ISO (and the agent files on it) is
+  # gone by the time the relabelled system comes back up. Confirmed via
+  # `incus console --show-log`: first boot shows the CD-ROM and a working
+  # mount, the post-relabel reboot shows an empty `/dev/disk/by-label/`.
+  #
+  # The fix that needs neither a live host SELinux kernel nor a guest
+  # reboot: `setfattr` writes the `security.selinux` xattr as a plain
+  # extended attribute — a generic filesystem operation the SELinux LSM
+  # doesn't need to be active to perform. `matchpathcon`, run inside a
+  # chroot of the guest's own rootfs, reads the guest's policy to compute
+  # the context each path *should* have (it only computes — it doesn't
+  # write, so unlike restorecon it doesn't care whether the host enforces
+  # SELinux). Together they label the files correctly for the guest's own
+  # policy without ever booting it.
+  if selinuxenabled 2>/dev/null; then
+    sudo restorecon -R \
+      "$mnt/usr/lib/udev/rules.d/99-incus-agent.rules" \
+      "$mnt/usr/lib/systemd/system/incus-agent.service" \
+      "$mnt/usr/lib/systemd/incus-agent-setup"
+  else
+    local path context
+    for path in \
+      /usr/lib/udev/rules.d/99-incus-agent.rules \
+      /usr/lib/systemd/system/incus-agent.service \
+      /usr/lib/systemd/incus-agent-setup
+    do
+      context=$(sudo chroot "$mnt" matchpathcon -n "$path" 2>/dev/null)
+      [[ -n "$context" ]] || die "matchpathcon found no SELinux context for $path — agent would be unlabeled and fail to execute under enforcing SELinux"
+      sudo setfattr -n security.selinux -v "$context" "$mnt$path"
+    done
+  fi
 
   sudo umount "$mnt"
   rmdir "$mnt"

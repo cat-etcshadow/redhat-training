@@ -249,14 +249,19 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 
 ## Phase 5 — End-to-end RHCSA validation
 
-- [ ] `rhtr rhcsa new --rhel 9 --profile full` completes without error
-- [ ] `rhtr rhcsa shell` opens VM shell
-- [ ] `rhtr rhcsa grade` grades all tasks, produces score table
-- [ ] `rhtr rhcsa reset` restores snapshot and re-applies setups
-- [ ] `rhtr rhcsa destroy` removes VMs and clears state
+- [x] `rhtr rhcsa new --rhel 10 --profile full` completes without error
+- [x] `rhtr rhcsa shell` opens VM shell (verified via `incus exec`)
+- [x] `rhtr rhcsa grade` grades all tasks, produces score table
+- [x] `rhtr rhcsa reset` restores snapshot and re-applies setups
+- [x] `rhtr rhcsa destroy` removes VMs and clears state
 - [ ] `rhtr rhcsa list-tasks --rhel 8` filters correctly
 - [ ] `rhtr rhcsa progress` shows training history
-- [ ] Test `--rhel 8` and `--rhel 10` end to end (after images available)
+- [ ] Test `--rhel 8` and `--rhel 10` end to end (RHEL 10 validated; RHEL 8/9 images not yet imported on this host)
+
+Validated 2026-07-06 on RHEL 10 after fixing the incus-agent bootstrap (see
+`lib/vm.sh` `_vm_inject_agent_bootstrap` and `vm_profile_ensure`) — the
+VM agent would not start at all before this fix. See git history for
+details.
 
 ---
 
