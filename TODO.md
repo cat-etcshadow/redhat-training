@@ -363,6 +363,142 @@ EX294 objectives and closed every gap found:
 
 ---
 
+## Phase 11 — Review backlog (full repo review, 2026-07-07)
+
+Findings from a full review: every task.md/meta.sh audited for hint leaks,
+all of `bin/`+`lib/` code-reviewed, exam configs cross-checked, and the task
+library compared against the current EX200/EX294 objectives.
+
+### 11a — Fix: critical
+
+- [ ] **RHCE managed nodes unreachable by inventory hostname** —
+      `certs/rhce/topology.sh:103`: `short="${node%%-"${RHEL_VERSION}"}"` turns
+      `rhtr-rhce-node1-9` into `rhtr-rhce-node1`, not `node1`, so `/etc/hosts`
+      on the control node never gets the `node1..node5` names every task
+      inventory uses. No RHCE playbook can reach its nodes. Fix by passing the
+      short name into the loop directly instead of re-deriving it.
+      Then run one real RHCE task end-to-end to validate (never done — Phase 5
+      has no RHCE equivalent).
+- [ ] **RHCE grading is static text-matching** — 43/55 `grade.sh` only run
+      `ansible-playbook --syntax-check` + `grep` for module names/strings in
+      the playbook text; zero execute against node state (only the two
+      ch02-navigator tasks do). Passable by keyword-stuffing a dead playbook.
+      After the hostname fix: rework grade.sh to run the playbook and assert
+      on real state on `node1..node5`. Do chapter by chapter; ch04-playbooks
+      and ch11-storage-lvm first (most state-assertable).
+- [ ] **`container-user-service-v1` claims RHEL 10 but solution uses
+      `podman generate systemd`** — removed in podman 5.x (RHEL 10). Either
+      split a Quadlet variant (see 11d) and cap this task at `RHEL_VERSIONS="8 9"`,
+      or rewrite for Quadlet. Same check for `container-service-v1` (already 8 9).
+- [ ] **Ctrl-C during `new`/`train` orphans VMs** — `lib/exam.sh:104` EXIT trap
+      does `rm -rf "$STATE_DIR"` but never `topology_destroy`; aborted setup
+      leaves Incus VMs behind while deleting the state that tracks them.
+
+### 11b — Fix: task content (hint/answer leaks — full audit, corpus otherwise clean)
+
+- [ ] `ch05-selinux/selinux-process-context-v1/task.md` — "(e.g. `httpd_t`)"
+      IS the answer to the task's own question; drop the parenthetical
+- [ ] `ch14-nfs/autofs-direct-v1/task.md` — opening sentence explains how
+      direct vs indirect maps work (teaching aside); delete it
+- [ ] `certs/rhce/.../ch09-vault/use-vault-users-v1/task.md` — "(`password_hash('sha512')`
+      filter)" leaks the exact filter syntax; require "SHA512 hash format" only
+- [ ] `certs/rhce/.../ch05-variables/registered-vars-v1/task.md` — decide on
+      `svc_result.rc` (leaks the `.rc` attribute; borderline vs. method mandate)
+- [ ] Borderline, decide once: `ch12-logging/logrotate-v1` ("keeps its log file
+      open…" rationale), `ch13-networking/static-ip-v1` ("**Important**:" preface)
+
+### 11c — Fix: weak grading / wrong solutions (RHCSA)
+
+- [ ] `ch03-users/create-users-v{1,2}/grade.sh` — required password value never
+      verified, any hash passes; check the hash against `{{PASSWORD}}`
+- [ ] `ch09-storage/add-partition-{ext4,xfs,gpt}-v1`, `persistent-mount-label-v1`
+      — `{{PART_SIZE}}` is required by task.md but never graded; assert size ±tolerance
+- [ ] `ch16-containers/container-registry-v1/grade.sh` — two report-file greps
+      satisfiable with `echo`; assert on podman state instead where possible
+- [ ] **15 tasks whose `solution.sh` hardcodes example values instead of using
+      their params vars** (shown text is wrong for the actual instance):
+      create-users-v1/v2, password-aging-v1 (also misses `-I`, wouldn't pass its
+      own grader), sudo-nopasswd-v1, fix-file-context-v1, tuned-profile-v1,
+      cron-job-v1, add-partition-ext4-v1, add-partition-xfs-v1,
+      delete-partition-v1, create-lv-v1, extend-lv-v1, rsyslog-rule-v1,
+      hostname-dns-v1, firewall-add-port-v1
+- [ ] `lib/report.sh` `_show_solution` — substitute session params when
+      displaying solution.sh (task.md is rendered, solution.sh is raw-`cat`'d;
+      trainees see literal `"$HTTP_PORT"`)
+
+### 11d — Fix: robustness (lib)
+
+- [ ] `lib/exam.sh:404` `_run_task_script` — `tail -n +2` silently drops the
+      first line of any script not starting with a shebang; add a guard
+- [ ] `cmd_shell`/`cmd_grade`/`cmd_reset` — check `vm_running` and start stopped
+      VMs (or add `rhtr <cert> start`); today a stopped VM = raw Incus error
+- [ ] `lib/select.sh:28` — non-numeric topic count in a profile throws a raw
+      bash error instead of `die` naming the bad entry
+- [ ] Duplicate `## Phase 9` heading in this file — merge the two sections
+
+### 11e — Improve
+
+- [ ] **`bin/lint-tasks` — automated task-convention linter** (solves the
+      recurring "models re-introduce hints" problem structurally): fail on
+      hint phrasing in task.md (`Note:`, `Tip:`, `you can`, `e.g. <command>`,
+      man-page refs), non-whitelisted meta.sh variables, params.sh vars unused
+      by grade.sh, solution.sh referencing none of its params vars. Run in a
+      pre-commit hook / CI so violations can't land
+- [ ] shellcheck over `bin/` + `lib/` + all task scripts, fix findings, keep in CI
+- [ ] Validate RHEL 8 and 9 end-to-end (only 10 was validated); while there,
+      confirm `ch11-boot/grub-timeout-v1`'s hardcoded `/boot/grub2/grub.cfg`
+      is right for UEFI VMs (vs `/boot/efi/EFI/...`) per version
+- [ ] `hint.md` coverage: 140/233 tasks missing — decide policy (fill all via
+      cheap-model batch job, gated by the linter so hints stay out of task.md)
+- [ ] RHCE fixed exams full-v1/full-v2 share 7 tasks — reduce overlap as the
+      RHCE pool grows (blocked on 11f)
+- [ ] `progress.sh`/`history.sh` spawn `python3` per JSON field — batch reads
+      or use jq (minor)
+
+### 11f — Add: RHCE pool depth (thin chapters block varied full exams)
+
+Real EX294 is ~17–20 tasks; several chapters can't contribute variety:
+ch02 (3 tasks), ch03 (4), ch05 (4), ch07 (4), ch09 (4), ch10 (4), ch11 (3).
+Target ≥6 per chapter. Specific new tasks, all exam-aligned:
+
+- [ ] `ch08-roles/system-roles-storage-v1` — RHEL system role: storage (LVM+mount)
+- [ ] `ch08-roles/system-roles-network-v1` — RHEL system role: network
+- [ ] `ch08-roles/system-roles-firewall-v1` — RHEL system role: firewall
+- [ ] `ch06-tasks-control/reboot-update-v1` — update package(s), conditional
+      reboot via `ansible.builtin.reboot`, verify with `wait_for`/uptime
+- [ ] `ch06-tasks-control/at-task-v1` — one-shot scheduled job via `ansible.posix.at`
+- [ ] `ch08-roles/collection-requirements-v1` — install collections from a
+      `requirements.yml` (galaxy-requirements-v1 covers roles only)
+- [ ] `ch09-vault/vault-string-v1` — `ansible-vault encrypt_string` inline secret
+- [ ] `ch07-files-jinja2/template-loop-filters-v1` — template with `for` loop +
+      filters (`default`, `upper`) over hostvars
+- [ ] `ch03-inventory/inventory-refactor-v1` — restructure a flat inventory into
+      groups/children + group_vars (second static-inventory variant)
+- [ ] `ch10-troubleshooting/fix-idempotence-v1` — playbook that changes every
+      run; make it idempotent (command→module conversion)
+- [ ] Capstone: `ch04-playbooks/webserver-stack-v1` — httpd + template + SELinux
+      + firewalld + handler, graded by curl from control (exam-style compound)
+
+### 11g — Add: RHCSA tasks/topics
+
+- [ ] `ch16-containers/quadlet-service-v1` (+ rootless user variant) —
+      Quadlet `.container` unit; **required** for RHEL 10, exam-current for 9
+- [ ] `ch01-tools/find-by-owner-v1` — find files owned by a user, copy to a
+      target dir preserving permissions (classic exam item; find-files-v1 only
+      covers name/type/size)
+- [ ] `ch12-logging/chrony-client-v1` — point chronyd at a specific NTP server
+      (chrony-server-v1 exists; client-side config is the actual exam task)
+- [ ] `ch10-lvm/swap-on-lv-v1` — swap on a logical volume, persistent
+- [ ] `ch04-permissions/acl-default-v1` — default ACLs on a directory so new
+      files inherit (acl-v1 covers named entries only)
+- [ ] Compound capstone tasks (real exam bundles objectives): e.g.
+      `ch05-selinux/web-nonstandard-port-v1` — httpd on alt port + SELinux port
+      label + firewalld + enabled at boot, graded via curl
+- [ ] Second variants (`-v2`) for chapters still at one variant per objective
+      where randomization is thin — lowest priority
+
+---
+
 ## Backlog / future
 
 - [ ] RHCA / other cert support (same framework, new `certs/<cert>/` dir)
