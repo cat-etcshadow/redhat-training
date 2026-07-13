@@ -237,11 +237,26 @@ _display_tasks() {
 }
 
 # ── session commands ──────────────────────────────────────────────────────────
+# Starts any stopped VMs in the current session (e.g. after a host reboot)
+# instead of letting callers hit a raw Incus error mid-command.
+_ensure_vms_running() {
+  local vm stopped=()
+  for vm in "${VM_NAMES[@]}"; do
+    vm_running "$vm" || stopped+=("$vm")
+  done
+  [[ ${#stopped[@]} -eq 0 ]] && return 0
+  info "Starting stopped VM(s): ${stopped[*]}"
+  for vm in "${stopped[@]}"; do
+    vm_start "$vm" || die "Failed to start VM '$vm'"
+  done
+}
+
 cmd_shell() {
   rhtr_require_state
   source "$STATE_DIR/exam.conf"
   source "$RHTR_DIR/certs/$CERT/topology.sh"
   topology_names
+  _ensure_vms_running
 
   local node=""
   while [[ $# -gt 0 ]]; do
@@ -271,6 +286,7 @@ cmd_grade() {
   source "$STATE_DIR/exam.conf"
   source "$RHTR_DIR/certs/$CERT/topology.sh"
   topology_names
+  _ensure_vms_running
   grade_all_tasks
 
   # Record results in progress (train mode only, or always — your call)
@@ -287,6 +303,7 @@ cmd_reset() {
   source "$STATE_DIR/exam.conf"
   source "$RHTR_DIR/certs/$CERT/topology.sh"
   topology_names
+  _ensure_vms_running
 
   info "Restoring pre-exam snapshot..."
   for vm in "${VM_NAMES[@]}"; do
