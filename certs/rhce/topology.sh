@@ -72,6 +72,11 @@ echo "student ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/student
 dnf install -y ansible-core python3-pip podman git &>/dev/null
 pip3 install --quiet ansible-navigator &>/dev/null
 
+# ansible-core alone ships no collections — every task playbook in this cert
+# depends on community.general (nmcli, lvol, parted, sefcontext) and
+# ansible.posix (firewalld, seboolean, authorized_key, sysctl) modules
+su - student -c 'ansible-galaxy collection install community.general ansible.posix' &>/dev/null
+
 # generate SSH key for student
 su - student -c 'test -f ~/.ssh/id_rsa || ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa'
 BOOTSTRAP
@@ -92,8 +97,11 @@ echo "$ctrl_pubkey" >> /home/student/.ssh/authorized_keys
 chmod 700 /home/student/.ssh
 chmod 600 /home/student/.ssh/authorized_keys
 chown -R student:student /home/student/.ssh
-# install python3 for ansible
-dnf install -y python3 &>/dev/null
+# install python3 for ansible, plus the module deps ch04/ch11 playbooks need:
+# python3-firewall (firewalld module), policycoreutils-python-utils
+# (sefcontext/seboolean's semanage/setsebool), NetworkManager (nmcli module)
+dnf install -y python3 firewalld python3-firewall policycoreutils-python-utils NetworkManager &>/dev/null
+systemctl enable --now firewalld NetworkManager &>/dev/null
 NODEBOOT
   done
 

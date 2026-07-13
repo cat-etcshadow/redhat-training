@@ -371,14 +371,15 @@ library compared against the current EX200/EX294 objectives.
 
 ### 11a — Fix: critical
 
-- [ ] **RHCE managed nodes unreachable by inventory hostname** —
+- [x] **RHCE managed nodes unreachable by inventory hostname** —
       `certs/rhce/topology.sh:103`: `short="${node%%-"${RHEL_VERSION}"}"` turns
       `rhtr-rhce-node1-9` into `rhtr-rhce-node1`, not `node1`, so `/etc/hosts`
       on the control node never gets the `node1..node5` names every task
       inventory uses. No RHCE playbook can reach its nodes. Fix by passing the
       short name into the loop directly instead of re-deriving it.
       Then run one real RHCE task end-to-end to validate (never done — Phase 5
-      has no RHCE equivalent).
+      has no RHCE equivalent). — **still needs a real end-to-end VM run to
+      validate; not testable from this session (no VM access here).**
 - [ ] **RHCE grading is static text-matching** — 43/55 `grade.sh` only run
       `ansible-playbook --syntax-check` + `grep` for module names/strings in
       the playbook text; zero execute against node state (only the two
@@ -386,13 +387,47 @@ library compared against the current EX200/EX294 objectives.
       After the hostname fix: rework grade.sh to run the playbook and assert
       on real state on `node1..node5`. Do chapter by chapter; ch04-playbooks
       and ch11-storage-lvm first (most state-assertable).
-- [ ] **`container-user-service-v1` claims RHEL 10 but solution uses
-      `podman generate systemd`** — removed in podman 5.x (RHEL 10). Either
-      split a Quadlet variant (see 11d) and cap this task at `RHEL_VERSIONS="8 9"`,
-      or rewrite for Quadlet. Same check for `container-service-v1` (already 8 9).
-- [ ] **Ctrl-C during `new`/`train` orphans VMs** — `lib/exam.sh:104` EXIT trap
+      **Progress:** 8/9 ch04-playbooks tasks reworked (firewall, nmcli,
+      packages-v1, packages-v2, selinux, service, user-group, yum-repo) —
+      each now runs the real playbook via `ansible-playbook` (not just
+      `--syntax-check`) as the `student` user, then asserts live state with
+      `ansible <group> -m command/shell -a ...` (rpm -q, systemctl is-active,
+      firewall-cmd --query-*, getent, semanage fcontext -l, ls -Z, nmcli -g,
+      cat /etc/yum.repos.d/*.repo). Discovered and fixed along the way:
+      `topology.sh` bootstrap never installed the `community.general` /
+      `ansible.posix` collections every single RHCE playbook module depends
+      on (only `ansible-core`, which ships zero collections) — added
+      `ansible-galaxy collection install community.general ansible.posix` to
+      control-node bootstrap, plus `firewalld`/`python3-firewall`/
+      `policycoreutils-python-utils`/`NetworkManager` to managed-node
+      bootstrap so the `firewalld`/`seboolean`/`sefcontext`/`nmcli` modules
+      have their runtime deps. `selinux-playbook-v1/setup.sh` now
+      pre-populates `$CUSTOM_DIR` with a real file on the prod nodes so
+      "apply context to existing files" is an actual, checkable action
+      instead of a no-op against a directory that never existed.
+      **Not yet done:** `error-handling-v1` (ch04) and all of
+      `ch11-storage-lvm` (`lvm-playbook-v1`, `lvm-playbook-v2`,
+      `partition-playbook-v1`) target a `research`/`data_vg` volume group or
+      raw disk that doesn't exist anywhere — RHCE managed nodes get **no**
+      extra disk from `topology.sh` (unlike RHCSA's `NEEDS_DISK`/
+      `EXTRA_DISK_SIZES_GIB` mechanism). Real grading for these needs the
+      same kind of per-task extra-disk plumbing built for RHCSA, extended to
+      attach to specific managed nodes (prod = node3/node4, or `all` for
+      error-handling-v1) — a bigger, separate lift than the ch04 rework.
+      **None of this ch04 rework has been run against live VMs yet** (no VM
+      access in this session) — treat it as needing a real
+      `rhtr rhce new`/`grade` pass before trusting it; likely first-try bugs
+      in exact module output formats (e.g. `nmcli -g` field ordering,
+      `getsebool`/`semanage fcontext -l` output shape) that only show up
+      against a real Rocky 9 managed node.
+- [x] **`container-user-service-v1` claims RHEL 10 but solution uses
+      `podman generate systemd`** — removed in podman 5.x (RHEL 10). Capped
+      `RHEL_VERSIONS` to `"8 9"` rather than attempting a Quadlet rewrite
+      (tracked separately as `quadlet-service-v1` in 11g).
+- [x] **Ctrl-C during `new`/`train` orphans VMs** — `lib/exam.sh:104` EXIT trap
       does `rm -rf "$STATE_DIR"` but never `topology_destroy`; aborted setup
       leaves Incus VMs behind while deleting the state that tracks them.
+      Fixed via `_start_session_cleanup` in `lib/exam.sh`.
 
 ### 11b — Fix: task content (hint/answer leaks — full audit, corpus otherwise clean)
 
