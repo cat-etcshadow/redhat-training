@@ -13,6 +13,8 @@ id "$USER1" | grep -q "$GROUP"       || fail "$USER1 is not in group $GROUP"
 shadow1=$(getent shadow "$USER1")
 hash1=$(echo "$shadow1" | cut -d: -f2)
 [[ "$hash1" =~ ^\$ ]] || fail "$USER1 has no password set"
+python3 -c "import crypt,sys; h=sys.argv[1]; sys.exit(0 if crypt.crypt(sys.argv[2],h)==h else 1)" \
+  "$hash1" "$PASSWORD" || fail "$USER1 password does not match the required value"
 
 max=$(echo "$shadow1"  | cut -d: -f5)
 warn=$(echo "$shadow1" | cut -d: -f6)
@@ -30,5 +32,8 @@ shell2=$(getent passwd "$USER2" | cut -d: -f7)
 
 hash2=$(getent shadow "$USER2" | cut -d: -f2)
 [[ "$hash2" == !* ]] || fail "$USER2 account is not locked (shadow: $hash2)"
+# verify the password value under the lock prefix
+python3 -c "import crypt,sys; h=sys.argv[1].lstrip('!'); sys.exit(0 if crypt.crypt(sys.argv[2],h)==h else 1)" \
+  "$hash2" "$PASSWORD" || fail "$USER2 password does not match the required value"
 
 [[ $errors -eq 0 ]] && exit 0 || exit 1

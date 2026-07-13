@@ -22,5 +22,5 @@ users:
 
 - Users with `job: developer` → created on **dev** and **test** hosts, password from `dev_pass`, added to supplementary group `devops`
 - Users with `job: manager` → created on **prod** hosts, password from `mgr_pass`, added to supplementary group `opsmgr`
-- Passwords must use the **SHA512** hash format (`password_hash('sha512')` filter)
+- Passwords must be stored as **SHA512** password hashes
 - The playbook must work with `--vault-password-file {{VAULT_PASSWORD_FILE}}`

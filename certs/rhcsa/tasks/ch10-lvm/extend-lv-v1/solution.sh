@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-lvextend -L +300M /dev/vg_app/lv_app
-xfs_growfs /mnt/app
+lvextend -L "+$EXTEND_BY" "/dev/$VG_NAME/$LV_NAME"
+xfs_growfs "$MOUNT_POINT"

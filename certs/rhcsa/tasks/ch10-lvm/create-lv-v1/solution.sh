@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-DISK=$(lsblk -dpno NAME,TYPE | awk '$2=="disk"{print $1}' | grep -v sda | head -1)
+DISK=$(lsblk -dpbno NAME,TYPE,SIZE | awk -v want="$TASK_DISK_SIZE_GB" '$2=="disk"{gib=int(($3+536870912)/1073741824); if (gib==want) print $1}')
 pvcreate "$DISK"
-vgcreate vg_data "$DISK"
-lvcreate -L 500M -n lv_storage vg_data
-mkfs.xfs /dev/vg_data/lv_storage
-mkdir -p /mnt/storage
-UUID=$(blkid -s UUID -o value /dev/vg_data/lv_storage)
-echo "UUID=$UUID  /mnt/storage  xfs  defaults  0 0" >> /etc/fstab
+vgcreate "$VG_NAME" "$DISK"
+lvcreate -L "$LV_SIZE" -n "$LV_NAME" "$VG_NAME"
+mkfs.xfs "/dev/$VG_NAME/$LV_NAME"
+mkdir -p "$MOUNT_POINT"
+UUID=$(blkid -s UUID -o value "/dev/$VG_NAME/$LV_NAME")
+echo "UUID=$UUID  $MOUNT_POINT  xfs  defaults  0 0" >> /etc/fstab
 mount -a

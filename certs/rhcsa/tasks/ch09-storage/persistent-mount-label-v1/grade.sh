@@ -20,4 +20,18 @@ mountpoint -q "$MOUNT_POINT" || fail "$MOUNT_POINT is not currently mounted"
 fstype=$(findmnt -n -o FSTYPE "$MOUNT_POINT" 2>/dev/null)
 [[ "$fstype" == "xfs" ]] || fail "$MOUNT_POINT is mounted as '$fstype', expected 'xfs'"
 
+# size check (±20% tolerance covers partition alignment and MiB/MB ambiguity)
+size_to_bytes() {
+  local num unit mult=1
+  num=$(grep -oE '^[0-9.]+' <<<"$1"); unit=$(grep -oE '[A-Za-z]+$' <<<"$1")
+  case "$unit" in GiB|G) mult=1073741824;; MiB|M) mult=1048576;; KiB|K) mult=1024;; esac
+  awk -v n="$num" -v m="$mult" 'BEGIN{printf "%d", n*m}'
+}
+want=$(size_to_bytes "$PART_SIZE")
+actual=$(lsblk -bno SIZE "$(findmnt -n -o SOURCE "$MOUNT_POINT")" 2>/dev/null | head -1)
+if [[ -n "$actual" ]]; then
+  (( actual >= want*80/100 && actual <= want*120/100 )) \
+    || fail "$MOUNT_POINT size ${actual}B is not close to requested $PART_SIZE"
+fi
+
 [[ $errors -eq 0 ]] && exit 0 || exit 1

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-groupadd -g 50001 developers
-useradd -u 2003 -G developers carol
-echo 'RedHat9!' | passwd --stdin carol
-chage -M 30 -W 7 -I 5 carol
-useradd -u 2004 -G developers -s /bin/sh dave
-echo 'RedHat9!' | passwd --stdin dave
-passwd -l dave
+groupadd -g "$GID" "$GROUP"
+useradd -u "$UID1" -G "$GROUP" "$USER1"
+echo "$PASSWORD" | passwd --stdin "$USER1"
+chage -M "$MAX_AGE" -W "$WARN_DAYS" -I "$INACTIVE" "$USER1"
+useradd -u "$UID2" -G "$GROUP" -s /bin/sh "$USER2"
+echo "$PASSWORD" | passwd --stdin "$USER2"
+passwd -l "$USER2"

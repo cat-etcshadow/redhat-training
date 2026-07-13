@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-chage -m 2 -M 60 -W 10 -E 2027-01-01 anna
-chage -d 0 -M 90 mark
+chage -m "$MIN_AGE" -M "$MAX_AGE1" -W "$WARN_DAYS" -I "$INACTIVE" "$USER1"
+chage -d 0 -M "$MAX_AGE2" "$USER2"

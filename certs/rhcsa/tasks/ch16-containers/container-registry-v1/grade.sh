@@ -6,9 +6,10 @@ fail() { echo "FAIL: $*"; (( errors++ )); }
 [[ -f "$REPORT_FILE" ]] || fail "$REPORT_FILE does not exist"
 [[ -s "$REPORT_FILE" ]] || fail "$REPORT_FILE is empty"
 
-# search output must be in report
-grep -qi "$SEARCH_TERM" "$REPORT_FILE" \
-  || fail "$REPORT_FILE missing search results for '$SEARCH_TERM'"
+# search output must be in report — require the registry-qualified name that
+# `podman search` actually prints, not just the bare term (which is echo-forgeable)
+grep -qi 'registry.access.redhat.com/ubi9' "$REPORT_FILE" \
+  || fail "$REPORT_FILE missing registry-qualified search results for '$SEARCH_TERM'"
 
 # target image must be pulled
 podman image inspect "$TARGET_IMAGE" &>/dev/null \
@@ -24,8 +25,13 @@ id_tag=$(podman inspect --format '{{.Id}}' "local/ubi9:latest")
 [[ "$id_orig" == "$id_tag" ]] \
   || fail "local/ubi9:latest has different ID than $TARGET_IMAGE (should be a tag, not a separate pull)"
 
-# registries.conf content must appear in report
-grep -qi 'registries\|unqualified' "$REPORT_FILE" \
+# registry access must actually be configured (live state, not echo-forgeable)
+grep -E '^[[:space:]]*unqualified-search-registries' /etc/containers/registries.conf 2>/dev/null \
+  | grep -q 'registry.access.redhat.com' \
+  || fail "registry.access.redhat.com is not in unqualified-search-registries"
+
+# and the config content must have been appended to the report
+grep -q 'unqualified-search-registries' "$REPORT_FILE" \
   || fail "$REPORT_FILE missing registries.conf content"
 
 [[ $errors -eq 0 ]] && exit 0 || exit 1

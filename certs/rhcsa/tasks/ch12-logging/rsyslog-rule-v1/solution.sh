@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 dnf install -y rsyslog
 systemctl enable --now rsyslog
-cat > /etc/rsyslog.d/auth-errors.conf <<'CONF'
-auth.crit    /var/log/auth-critical.log
+cat > "$CONF_FILE" <<CONF
+$FACILITY.$SEVERITY    $LOG_FILE
 CONF
 systemctl restart rsyslog
-logger -p auth.crit "Test critical auth message"
+logger -p "$FACILITY.$SEVERITY" "Test message"
