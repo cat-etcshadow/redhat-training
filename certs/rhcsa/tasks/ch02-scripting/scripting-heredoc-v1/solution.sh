@@ -15,13 +15,6 @@ cat > "${confdir}/app.conf" <<EOF
 user = ${user}
 port = ${port}
 log_level = info
-pid_file = /run/${user}/app.pid
-EOF
-
-cat > "${confdir}/app.env" <<'EOF'
-APP_USER=$APP_USER
-APP_PORT=$APP_PORT
-APP_LOG=/var/log/app.log
 EOF
 
 echo "Generated config in $confdir"

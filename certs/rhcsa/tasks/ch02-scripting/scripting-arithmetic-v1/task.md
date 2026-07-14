@@ -15,8 +15,7 @@ Requirements:
 3. Print `Usage: <pct>%`.
 
 4. Based on `pct`:
-   - `pct >= 90` → print `CRITICAL` and exit **2**
-   - `75 <= pct < 90` → print `WARNING` and exit **1**
-   - `pct < 75` → print `OK` and exit **0**
+   - `pct >= 80` → print `WARNING` and exit **1**
+   - `pct < 80` → print `OK` and exit **0**
 
 The script must be executable.

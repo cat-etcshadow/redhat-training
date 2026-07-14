@@ -17,10 +17,7 @@ fi
 pct=$(( used * 100 / total ))
 echo "Usage: ${pct}%"
 
-if (( pct >= 90 )); then
-  echo "CRITICAL"
-  exit 2
-elif (( pct >= 75 )); then
+if (( pct >= 80 )); then
   echo "WARNING"
   exit 1
 else

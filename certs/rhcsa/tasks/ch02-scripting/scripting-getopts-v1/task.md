@@ -8,7 +8,6 @@ Requirements:
 1. Accepts the flags:
    - `-s <source-file>` (required)
    - `-d <dest-dir>` (required)
-   - `-v` (optional — enables verbose output)
 
 2. If `-s` or `-d` is missing, print a usage message to stderr and exit **1**.
 
@@ -16,9 +15,6 @@ Requirements:
 
 4. Create `<dest-dir>` if it does not exist, then copy `<source-file>` into it.
 
-5. When `-v` is given, print `Copying <source-file> to <dest-dir>/<basename>`
-   before copying. Without `-v`, no such line is printed.
-
-6. On success, print `Backup complete` and exit **0**.
+5. On success, print `Backup complete` and exit **0**.
 
 The script must be executable.

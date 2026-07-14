@@ -17,17 +17,9 @@ check_mountpoint() {
   fi
 }
 
-main() {
-  print_header
-  for mp in / /boot /tmp /var; do
-    check_mountpoint "$mp"
-  done
-}
-
-if [[ "${1:-}" == "--output" && -n "${2:-}" ]]; then
-  main > "$2"
-else
-  main
-fi
+print_header
+for mp in / /boot; do
+  check_mountpoint "$mp"
+done
 SCRIPT
 chmod +x "$SCRIPT_PATH"
