@@ -268,6 +268,7 @@ tasks/ch05-selinux/fix-file-context-v1/
 ├── meta.sh         # required
 ├── task.md         # required
 ├── setup.sh        # required — creates the exam state on the VM
+├── postsetup.sh    # optional — runs after every selected task's setup.sh
 ├── grade.sh        # required — exit 0 = pass, exit 1 = fail
 ├── hint.md         # optional — shown in train mode on request
 └── solution.sh     # optional — shown after grading in train mode

@@ -13,7 +13,7 @@ current=$(getsebool httpd_can_network_connect 2>/dev/null | awk '{print $3}')
 
 # Must be persistent (stored in policy — getsebool shows both runtime and persistent)
 persistent=$(semanage boolean -l 2>/dev/null \
-  | awk '/httpd_can_network_connect/{print $3}' | tr -d ',')
+  | awk '/httpd_can_network_connect/{print $4}' | tr -d '),')
 [[ "$persistent" == "on" ]] \
   || fail "httpd_can_network_connect persistent value is $persistent — use setsebool -P"
 

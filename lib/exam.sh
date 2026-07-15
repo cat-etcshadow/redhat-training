@@ -169,9 +169,29 @@ EOF
     fi
     (( i++ ))
   done
+  _apply_post_setups "${selected_tasks[@]}"
 
   trap - EXIT
   _display_tasks "${selected_tasks[@]}"
+}
+
+# Run each selected task's postsetup.sh (if present) after every task's own
+# setup.sh has finished. Some tasks (e.g. hostname-dns-v1) mutate shared
+# system state (/etc/hosts) from their own setup.sh, which can run after an
+# earlier task's setup.sh already snapshotted that same file — see git
+# history for lib/exam.sh and ch01-tools/man-docs-v1 for the incident this
+# fixed. A task that needs a baseline of shared state as the candidate will
+# actually first see it belongs in postsetup.sh, not setup.sh.
+_apply_post_setups() {
+  local selected_tasks=("$@")
+  local task_dir postsetup
+  for task_dir in "${selected_tasks[@]}"; do
+    postsetup="$task_dir/postsetup.sh"
+    if [[ -f "$postsetup" ]]; then
+      _run_task_script "${VM_NAMES[0]}" "$postsetup" "$task_dir" \
+        || die "Post-setup failed for $(task_short_name "$task_dir") — environment not ready for this task"
+    fi
+  done
 }
 
 # ── show tasks from active session or last-session backup ────────────────────
@@ -321,6 +341,7 @@ cmd_reset() {
         || _reset_failed+=("$(task_short_name "$_rt")")
     fi
   done
+  _apply_post_setups "${_reset_tasks[@]}"
 
   # Clear previous grades so the candidate starts fresh
   : > "$STATE_DIR/grades.txt"

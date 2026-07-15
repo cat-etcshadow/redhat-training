@@ -6,12 +6,15 @@ fail() { echo "FAIL: $*"; (( errors++ )); }
 [[ -f "$DEST_FILE" ]] \
   || fail "$DEST_FILE does not exist — copy /etc/hosts with archive mode (cp -a)"
 
-orig_mtime=$(stat -c '%Y' /etc/hosts)
+baseline=/root/.rhtr-hosts-snapshot
+[[ -f "$baseline" ]] || baseline=/etc/hosts
+
+orig_mtime=$(stat -c '%Y' "$baseline")
 dest_mtime=$(stat -c '%Y' "$DEST_FILE")
 [[ "$orig_mtime" == "$dest_mtime" ]] \
   || fail "$DEST_FILE mtime does not match /etc/hosts — use 'cp -a' or 'cp --archive' to preserve timestamps"
 
-diff /etc/hosts "$DEST_FILE" &>/dev/null \
+diff "$baseline" "$DEST_FILE" &>/dev/null \
   || fail "$DEST_FILE content differs from /etc/hosts"
 
 [[ -f "$OUTPUT_FILE" ]] \

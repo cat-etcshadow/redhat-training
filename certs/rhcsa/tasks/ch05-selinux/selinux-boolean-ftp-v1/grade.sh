@@ -10,7 +10,7 @@ current=$(getsebool ftpd_anon_write 2>/dev/null | awk '{print $3}')
   || fail "ftpd_anon_write is $current, expected on"
 
 persistent=$(semanage boolean -l 2>/dev/null \
-  | awk '/ftpd_anon_write/{print $3}' | tr -d ',')
+  | awk '/ftpd_anon_write/{print $4}' | tr -d '),')
 [[ "$persistent" == "on" ]] \
   || fail "ftpd_anon_write persistent value is $persistent — use setsebool -P"
 
