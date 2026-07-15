@@ -1,16 +1,3 @@
 ## Write a script using a for loop
 
-Create an executable script at **{{SCRIPT_PATH}}** that:
-
-1. Accepts one argument: a **base directory** path.
-   If no argument is provided, print usage to stderr and exit **1**.
-
-2. Uses a **for loop** to create the following subdirectories inside the base directory:
-   `logs`, `data`, `config`, `backups`, `tmp`
-
-3. Inside each subdirectory, create a file named `README` containing the text:
-   `This is the <name> directory`  (where `<name>` is the subdirectory name)
-
-4. Print one line per created directory: `Created: <full-path>`
-
-5. Exit **0** on success.
+Create an executable script at **{{SCRIPT_PATH}}** that accepts one argument, a base directory path — printing usage to stderr and exiting **1** if none is provided. Using a for loop, it must create the subdirectories `logs`, `data`, `config`, `backups`, and `tmp` inside the base directory, create a file named `README` in each containing `This is the <name> directory` (where `<name>` is the subdirectory name), print `Created: <full-path>` for each directory, and exit **0** on success.

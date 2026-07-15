@@ -1,10 +1,3 @@
 ## Create and extract a {{ARCHIVE_FORMAT}}-compressed tar archive
 
-Your task:
-
-1. Create the directory **{{ARCHIVE_DIR}}** if it does not exist.
-2. Create a **{{ARCHIVE_FORMAT}}-compressed** tar archive of **{{SRC_DIR}}** and
-   save it as **{{ARCHIVE_DIR}}/backup.{{ARCHIVE_EXT}}**.
-3. Create **{{EXTRACT_DIR}}** if it does not exist.
-4. Extract the archive into **{{EXTRACT_DIR}}**, preserving the directory structure.
-5. The extracted files must match the originals.
+Create a **{{ARCHIVE_FORMAT}}-compressed** tar archive of **{{SRC_DIR}}** and save it as **{{ARCHIVE_DIR}}/backup.{{ARCHIVE_EXT}}**, creating **{{ARCHIVE_DIR}}** if it does not exist. Extract the archive into **{{EXTRACT_DIR}}** (creating it if needed), preserving the directory structure, so the extracted files match the originals.

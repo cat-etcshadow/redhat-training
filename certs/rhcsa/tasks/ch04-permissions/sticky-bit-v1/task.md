@@ -1,11 +1,3 @@
 ## Create a shared directory with sticky bit and SGID
 
-Your task:
-
-1. Create group **{{SHARED_GROUP}}** if it does not already exist.
-2. Create directory **{{SHARED_DIR}}** (including parent directories).
-3. Set the group owner of **{{SHARED_DIR}}** to **{{SHARED_GROUP}}**.
-4. Apply **SGID** so that new files created inside inherit the group **{{SHARED_GROUP}}**.
-5. Apply the **sticky bit** so that only the file owner (or root) can delete files inside.
-6. Set permissions so the owning group has read/write/execute access,
-   and others have no access (mode `3770`).
+Create group **{{SHARED_GROUP}}** if it does not already exist, and create directory **{{SHARED_DIR}}** (including parent directories as needed) with group owner **{{SHARED_GROUP}}**, the SGID bit set so new files inside inherit the group, the sticky bit set so only the file owner (or root) can delete files inside, and permissions granting the owning group read/write/execute with no access for others — mode `3770`.

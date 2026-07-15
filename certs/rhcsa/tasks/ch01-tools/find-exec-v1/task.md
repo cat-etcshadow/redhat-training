@@ -1,13 +1,3 @@
 ## Fix insecure file permissions with find and -exec
 
-The directory **{{TARGET_DIR}}** contains files and subdirectories that were
-accidentally made world-writable (mode `{{WORLD_WRITABLE_MODE}}`). This is a
-security risk and must be corrected.
-
-Your task:
-
-1. Use `find` with `-exec` (or `-execdir`) to set all **regular files** in
-   **{{TARGET_DIR}}** (recursively) to mode **{{CORRECT_FILE_MODE}}**.
-2. Use `find` with `-exec` to set all **directories** in **{{TARGET_DIR}}**
-   (recursively, including **{{TARGET_DIR}}** itself) to mode **{{CORRECT_DIR_MODE}}**.
-3. No files or directories under **{{TARGET_DIR}}** may remain world-writable.
+The directory **{{TARGET_DIR}}** contains files and subdirectories that were accidentally made world-writable (mode `{{WORLD_WRITABLE_MODE}}`). Recursively set all regular files under **{{TARGET_DIR}}** to mode **{{CORRECT_FILE_MODE}}** and all directories, including **{{TARGET_DIR}}** itself, to mode **{{CORRECT_DIR_MODE}}**, so that nothing under **{{TARGET_DIR}}** remains world-writable.

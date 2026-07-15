@@ -1,21 +1,3 @@
 ## Fix SELinux file context on web content directory
 
-The Apache web server (**httpd**) is installed and configured to serve content
-from the directory **/var/www/html/{{WEBDIR}}/**.
-
-However, httpd is currently returning **403 Forbidden** for all files in that
-directory. The standard Unix permissions are correct.
-
-The files in **/var/www/html/{{WEBDIR}}/** have the wrong SELinux context.
-
-Your task:
-
-1. Identify the incorrect SELinux context on the files in **/var/www/html/{{WEBDIR}}/**.
-
-2. Apply the correct SELinux context to all files and the directory itself so
-   that httpd can serve them.
-
-3. The fix must be **persistent** — files added to **/var/www/html/{{WEBDIR}}/**
-   in the future should automatically receive the correct context.
-
-Do **not** set SELinux to permissive mode.
+The Apache web server (**httpd**) is installed and configured to serve content from **/var/www/html/{{WEBDIR}}/**, but is returning **403 Forbidden** for all files there even though standard Unix permissions are correct — the SELinux context on the files is wrong. Apply the correct SELinux context to the directory and its files so httpd can serve them, and make the fix persistent so files added to **/var/www/html/{{WEBDIR}}/** in the future automatically receive the correct context.

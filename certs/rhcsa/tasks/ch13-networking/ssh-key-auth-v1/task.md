@@ -1,19 +1,3 @@
 ## Configure SSH key-based authentication
 
-The user **{{SSH_USER}}** exists on the system.
-
-Your task:
-
-1. Generate an **RSA key pair** (no passphrase) for **{{SSH_USER}}**.
-
-2. Add the public key to **{{SSH_USER}}'s** `authorized_keys` so the user can
-   SSH to localhost without a password.
-
-3. Set correct permissions on `~/.ssh` and `authorized_keys`.
-
-4. Configure `/etc/ssh/sshd_config` to ensure:
-   - `PubkeyAuthentication yes`
-   - `AuthorizedKeysFile .ssh/authorized_keys`
-   Reload sshd after making changes.
-
-5. **{{SSH_USER}}** must be able to SSH to localhost **without a password prompt**.
+The user **{{SSH_USER}}** exists on the system. Set up SSH key-based authentication for **{{SSH_USER}}** using an RSA key pair with no passphrase, with correct ownership and permissions on `~/.ssh` and `authorized_keys`, with `sshd` public key authentication enabled and applied to the running service, such that **{{SSH_USER}}** can SSH to localhost without a password prompt.

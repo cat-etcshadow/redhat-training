@@ -1,12 +1,3 @@
 ## Create XFS partition with label and mount by LABEL
 
-An extra **{{DISK_SIZE}}** disk is available.
-
-Your task:
-
-1. Identify the extra disk.
-2. Add a **{{PART_SIZE}} partition** on it.
-3. Format it as **XFS** with the label **{{FS_LABEL}}**.
-4. Create mount point **{{MOUNT_POINT}}**.
-5. Add a persistent entry to `/etc/fstab` using the **LABEL** (not UUID or device path).
-6. The filesystem must be mounted at **{{MOUNT_POINT}}** without requiring a reboot.
+An extra **{{DISK_SIZE}}** disk is available. Add a **{{PART_SIZE}}** partition on it, format it as **XFS** with the label **{{FS_LABEL}}**, and mount it persistently at **{{MOUNT_POINT}}** using an `/etc/fstab` entry that references the **LABEL** (not UUID or device path), without requiring a reboot.

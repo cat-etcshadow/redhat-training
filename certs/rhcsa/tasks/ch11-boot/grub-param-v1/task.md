@@ -1,6 +1,3 @@
 ## Add a kernel parameter persistently
 
-Your task:
-
-1. Add the kernel parameter **{{KERNEL_PARAM}}** to the default kernel entry.
-2. Verify it was applied — the default kernel's argument list should include **{{KERNEL_PARAM}}**.
+Add the kernel parameter **{{KERNEL_PARAM}}** to the default kernel entry, so that the default kernel's argument list includes **{{KERNEL_PARAM}}**.

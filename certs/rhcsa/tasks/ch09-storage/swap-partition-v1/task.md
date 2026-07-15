@@ -1,12 +1,3 @@
 ## Create a swap partition and activate persistently
 
-An unpartitioned **{{DISK_SIZE}}** disk is available.
-
-Your task:
-
-1. Identify the unpartitioned extra disk on the system.
-2. Create a **512 MiB** partition and set its type to **Linux swap**.
-3. Format the partition as swap.
-4. Activate the swap partition immediately.
-5. Make the swap persistent across reboots by adding it to `/etc/fstab`
-   using the partition **UUID**.
+An unpartitioned **{{DISK_SIZE}}** disk is available. Create a **512 MiB** partition and set its type to **Linux swap**, format it as swap, and activate it immediately. Make it persistent across reboots by adding it to `/etc/fstab` using the partition's UUID.

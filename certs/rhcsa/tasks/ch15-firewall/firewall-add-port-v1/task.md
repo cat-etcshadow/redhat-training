@@ -1,7 +1,3 @@
 ## Open a custom port in firewalld
 
-Your task:
-
-1. Add TCP port **{{TCP_PORT}}** to the **public** zone permanently.
-2. Also open the UDP port range **{{UDP_START}}-{{UDP_END}}** permanently.
-3. Reload firewalld to apply the changes.
+Permanently add TCP port **{{TCP_PORT}}** and UDP port range **{{UDP_START}}-{{UDP_END}}** to the **public** zone, and reload firewalld to apply the changes.

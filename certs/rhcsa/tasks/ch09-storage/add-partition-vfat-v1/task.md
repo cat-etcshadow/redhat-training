@@ -1,16 +1,3 @@
 ## Create a vfat (FAT32) partition and mount it persistently
 
-An extra **{{DISK_SIZE}}** disk is available.
-
-Your task:
-
-1. Identify the extra disk.
-
-2. Create a partition on it.
-
-3. Format the partition as **vfat (FAT32)**.
-
-4. Create mount point **{{MOUNT_POINT}}** and add a **persistent** entry in
-   `/etc/fstab` using the partition's UUID.
-
-5. Mount all entries in `/etc/fstab`.
+An extra **{{DISK_SIZE}}** disk is available. Create a partition on it, format it as **vfat (FAT32)**, and mount it persistently at **{{MOUNT_POINT}}** using the partition's UUID in `/etc/fstab`.

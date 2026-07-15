@@ -1,10 +1,3 @@
 ## Find the most frequent log entry with sort and uniq
 
-The file **{{LOG_FILE}}** contains one username per line, recorded once per
-login attempt. The same username appears many times, in no particular order.
-
-Your task:
-
-1. Determine which username appears **most frequently** in **{{LOG_FILE}}**.
-
-2. Write that username, and nothing else, to **{{OUTPUT_FILE}}**.
+The file **{{LOG_FILE}}** contains one username per line, recorded once per login attempt, with the same username appearing many times in no particular order. Determine which username appears most frequently and write that username, and nothing else, to **{{OUTPUT_FILE}}**.

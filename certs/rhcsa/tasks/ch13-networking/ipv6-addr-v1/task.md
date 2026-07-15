@@ -1,14 +1,3 @@
 ## Configure a static IPv6 address
 
-Your task:
-
-1. Identify the name of the primary network connection.
-
-2. Add a **static IPv6 address** to the primary connection:
-   - Address: **{{IPV6_ADDR}}/{{IPV6_PREFIX}}**
-   - Gateway: **{{IPV6_GW}}**
-   - Method: **manual** (not auto/DHCP)
-
-3. Bring the connection down and up to apply.
-
-4. The configuration must be **persistent** (survive a reload of NetworkManager).
+Add a static IPv6 address of **{{IPV6_ADDR}}/{{IPV6_PREFIX}}** with gateway **{{IPV6_GW}}** to the system's primary network connection, using manual addressing rather than autoconfiguration/DHCP, active on the interface and persistent enough to survive a reload of NetworkManager.

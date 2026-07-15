@@ -1,21 +1,3 @@
 ## Write a script that handles exit codes and errors
 
-Create an executable script at **{{SCRIPT_PATH}}** that safely copies files with
-proper error handling.
-
-Requirements:
-
-1. Accepts two arguments: `<source>` and `<destination>`.
-   - Wrong count → stderr usage message, exit **1**
-
-2. Check source exists and is readable:
-   - Does not exist → stderr error, exit **2**
-   - Exists but not readable → stderr error, exit **3**
-
-3. If destination is a directory, copy the file into it.
-   If destination is a path ending in a filename, copy to that exact path,
-   creating any missing parent directories.
-
-4. After the `cp` command, check `$?` (the exit code of the last command):
-   - If `cp` failed, print error to stderr and exit **4**
-   - If `cp` succeeded, print: `Copied <source> → <destination>`
+Create an executable script at **{{SCRIPT_PATH}}** that safely copies files with proper error handling. It must accept two arguments, `<source>` and `<destination>` — printing a usage message to stderr and exiting **1** if the count is wrong — then verify the source exists and is readable, exiting **2** if it does not exist or **3** if it exists but is not readable. If `<destination>` is a directory, it must copy the file into it; if `<destination>` is a path ending in a filename, it must copy to that exact path, creating any missing parent directories. If the copy fails, it must print an error to stderr and exit **4**; if it succeeds, print `Copied <source> → <destination>`.
