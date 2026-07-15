@@ -516,7 +516,7 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
 
 ## Task library: EX200 exam coverage
 
-**Total tasks: 178 — 155 exam-aligned, 21 extra, 2 borderline**
+**Total tasks: 188 — 165 exam-aligned, 21 extra, 2 borderline**
 
 > **Legend**
 > - `exam` — directly maps to an official EX200 objective
@@ -530,21 +530,21 @@ currently published objective, regardless of which `RHEL_VERSIONS` they run agai
 |---|---|---|---|---|---|
 | ch01-tools | Essential commands | 16 | 16 | — | archive-compress-v1, archive-compress-v2, find-exec-v1, find-files-v1, find-mtime-v1, grep-extended-v1, grep-regex-v1, io-redirect-v1, links-v1, man-docs-v1, scp-transfer-v1, sort-uniq-v1, ssh-remote-exec-v1, switch-user-v1, tar-selective-v1, vim-edit-v1 |
 | ch02-scripting | Shell scripting | 14 | 14 | — | scripting-args-v1, scripting-arithmetic-v1, scripting-arrays-v1, scripting-case-v1, scripting-defaults-v1, scripting-exit-codes-v1, scripting-for-files-v1, scripting-for-list-v1, scripting-functions-v1, scripting-getopts-v1, scripting-heredoc-v1, scripting-if-v1, scripting-until-v1, scripting-while-v1 |
-| ch03-users | Users and groups | 11 | 11 | — | account-expiry-v1, create-users-v1, create-users-v2, delete-user-v1, group-batch-membership-v1, group-membership-v1, password-aging-v1, sudo-nopasswd-v1, sudo-wheel-group-v1, useradd-custom-v1, usermod-lock-v1 |
+| ch03-users | Users and groups | 12 | 12 | — | account-expiry-v1, create-users-v1, create-users-v2, delete-user-v1, group-batch-membership-v1, group-membership-v1, password-aging-v1, sudo-nopasswd-v1, sudo-wheel-group-v1, troubleshoot-account-access-v1, useradd-custom-v1, usermod-lock-v1 |
 | ch04-permissions | Permissions | 10 | 9 | 1 | acl-mask-v1, acl-revoke-v1, acl-v1, ~~chattr-immutable-v1~~, fix-perms-v1, numeric-perms-v1, setgid-dir-v1, sticky-bit-v1, suid-sgid-audit-v1, umask-v1 |
 | ch05-selinux | SELinux | 12 | 12 | — | boolean-httpd-v1, boolean-nfs-v1, fix-file-context-v1, fix-file-context-v2, selinux-boolean-ftp-v1, selinux-boolean-set-v1, selinux-mode-v1, selinux-port-ssh-v1, selinux-port-v1, selinux-process-context-v1, selinux-restorecon-v1, troubleshoot-audit-v1 |
-| ch06-performance | Process management | 8 | 8 | — | disown-background-v1, job-control-v1, kill-signals-v1, nice-launch-v1, process-priority-v1, ps-filter-report-v1, top-batch-report-v1, tuned-profile-v1 |
-| ch07-scheduling | Scheduling | 9 | 8 | 1 | at-batch-v1, at-job-v1, at-manage-v1, cron-dow-v1, cron-env-v1, cron-job-v1, cron-system-v1, systemd-timer-v1, ~~tmpfiles-v1~~ |
-| ch08-packages | Software management | 11 | 9 | 2 | ~~dnf-autoremove-v1~~, dnf-config-manager-v1, dnf-group-v1, ~~dnf-history-undo-v1~~, dnf-install-v1, dnf-local-rpm-v1, dnf-module-v1, dnf-reinstall-v1, dnf-search-provides-v1, flatpak-v1, repo-enable-v1 |
-| ch09-storage | Local storage | 12 | 9 | 3 | add-partition-ext4-v1, add-partition-gpt-v1, add-partition-vfat-v1, add-partition-xfs-v1, delete-partition-v1, ~~fstab-noauto-v1~~, ~~mount-options-v1~~, persistent-mount-label-v1, persistent-mount-uuid-v1, ~~resize-partition-v1~~, swap-file-v1, swap-partition-v1 |
-| ch10-lvm | LVM | 10 | 7 | 3 | create-lv-v1, extend-lv-ext4-v1, extend-lv-v1, lv-ext4-v1, lv-extend-percentage-v1, lv-remove-v1, ~~lv-rename-v1~~, ~~lvm-snapshot-v1~~, ~~stratis-pool-v1~~, vg-extend-v1 |
+| ch06-performance | Process management | 9 | 9 | — | disown-background-v1, job-control-v1, kill-signals-v1, nice-launch-v1, process-priority-v1, ps-filter-report-v1, top-batch-report-v1, troubleshoot-runaway-process-v1, tuned-profile-v1 |
+| ch07-scheduling | Scheduling | 10 | 9 | 1 | at-batch-v1, at-job-v1, at-manage-v1, cron-dow-v1, cron-env-v1, cron-job-v1, cron-system-v1, systemd-timer-v1, ~~tmpfiles-v1~~, troubleshoot-missed-backup-v1 |
+| ch08-packages | Software management | 12 | 10 | 2 | ~~dnf-autoremove-v1~~, dnf-config-manager-v1, dnf-group-v1, ~~dnf-history-undo-v1~~, dnf-install-v1, dnf-local-rpm-v1, dnf-module-v1, dnf-reinstall-v1, dnf-search-provides-v1, flatpak-v1, repo-enable-v1, troubleshoot-repo-install-v1 |
+| ch09-storage | Local storage | 13 | 10 | 3 | add-partition-ext4-v1, add-partition-gpt-v1, add-partition-vfat-v1, add-partition-xfs-v1, delete-partition-v1, ~~fstab-noauto-v1~~, ~~mount-options-v1~~, persistent-mount-label-v1, persistent-mount-uuid-v1, ~~resize-partition-v1~~, swap-file-v1, swap-partition-v1, troubleshoot-app-data-mount-v1 |
+| ch10-lvm | LVM | 11 | 8 | 3 | create-lv-v1, extend-lv-ext4-v1, extend-lv-v1, lv-ext4-v1, lv-extend-percentage-v1, lv-remove-v1, ~~lv-rename-v1~~, ~~lvm-snapshot-v1~~, ~~stratis-pool-v1~~, troubleshoot-lv-inactive-v1, vg-extend-v1 |
 | ch11-boot | Boot process | 13 | 12 | 1 | boot-target-v1, custom-unit-v1, disable-service-v1, fix-broken-service-v1, grub-param-v1, grub-timeout-v1, grubby-remove-param-v1, isolate-target-v1, reboot-shutdown-v1, repair-fstab-v1, reset-root-password-v1, service-enable-v1, ~~service-mask-v1~~ |
 | ch12-logging | Logging and time | 11 | 8 | 3 | ~~chrony-server-v1~~, journalctl-priority-v1, journalctl-since-v1, journalctl-v1, journalctl-vacuum-v1, journald-persistent-v1, journald-size-v1, ~~logrotate-v1~~, ntp-toggle-v1, ~~rsyslog-rule-v1~~, timedatectl-v1 |
-| ch13-networking | Networking | 11 | 9 | 2 | dns-resolver-v1, dns-search-domain-v1, hostname-dns-v1, ipv6-addr-v1, ~~nmcli-bond-v1~~, nmcli-connection-add-v1, nmcli-secondary-ip-v1, routing-v1, ~~ssh-hardening-v1~~, ssh-key-auth-v1, static-ip-v1 |
+| ch13-networking | Networking | 13 | 11 | 2 | dns-resolver-v1, dns-search-domain-v1, hostname-dns-v1, ipv6-addr-v1, ~~nmcli-bond-v1~~, nmcli-connection-add-v1, nmcli-secondary-ip-v1, routing-v1, ~~ssh-hardening-v1~~, ssh-key-auth-v1, static-ip-v1, troubleshoot-connectivity-v1, troubleshoot-ssh-keyauth-v1 |
 | ch14-nfs | NFS / Autofs | 8 | 5 | 3 | autofs-direct-v1, autofs-v1, ~~nfs-automount-systemd-v1~~, ~~nfs-export-v1~~, nfs-mount-options-v1, nfs-mount-v1, nfs-unmount-v1, ~~showmount-v1~~ |
-| ch15-firewall | Firewall | 9 | 9 | — | firewall-add-port-v1, firewall-add-service-v1, firewall-default-zone-v1, firewall-masquerade-v1, firewall-port-forward-v1, firewall-remove-service-v1, firewall-rich-rule-v1, firewall-runtime-permanent-v1, firewall-zone-v1 |
-| ch16-containers | Containers | 13 | 9 | 4 | container-env-v1, container-exec-logs-v1, ~~container-healthcheck-v1~~, container-lifecycle-v1, container-network-v1, container-registry-v1, ~~container-resource-limits-v1~~, container-service-v1, container-storage-v1, container-user-service-v1, run-container-v1, *container-build-v1*, *container-inspect-v1* |
-| **Total** | | **178** | **155** | **21** | *italic* = borderline |
+| ch15-firewall | Firewall | 10 | 10 | — | firewall-add-port-v1, firewall-add-service-v1, firewall-default-zone-v1, firewall-masquerade-v1, firewall-port-forward-v1, firewall-remove-service-v1, firewall-rich-rule-v1, firewall-runtime-permanent-v1, firewall-zone-v1, troubleshoot-service-unreachable-v1 |
+| ch16-containers | Containers | 14 | 10 | 4 | container-env-v1, container-exec-logs-v1, ~~container-healthcheck-v1~~, container-lifecycle-v1, container-network-v1, container-registry-v1, ~~container-resource-limits-v1~~, container-service-v1, container-storage-v1, container-user-service-v1, run-container-v1, troubleshoot-container-boot-v1, *container-build-v1*, *container-inspect-v1* |
+| **Total** | | **188** | **165** | **21** | *italic* = borderline |
 
 ### Extra tasks (21)
 
