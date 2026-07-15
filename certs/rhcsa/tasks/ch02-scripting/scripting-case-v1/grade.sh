@@ -16,6 +16,10 @@ fail() { echo "FAIL: $*"; (( errors++ )); }
 err=$("$SCRIPT_PATH" frobnicate sshd 2>&1 || true)
 echo "$err" | grep -qi 'unknown' || fail "unknown action output doesn't say 'Unknown': $err"
 
+# ensure sshd is running before checking status — a prior manual test run
+# of the script (e.g. "stop sshd") must not invalidate this check
+systemctl start sshd &>/dev/null || true
+
 # status action — sshd should be running
 out=$("$SCRIPT_PATH" status sshd 2>/dev/null) && rc=0 || rc=$?
 [[ $rc -eq 0 ]] || fail "'status sshd' exited $rc (is sshd running?)"
