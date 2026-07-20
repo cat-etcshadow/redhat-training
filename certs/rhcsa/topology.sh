@@ -77,6 +77,11 @@ topology_create() {
     done
     [[ $settled -eq 1 ]] && vm_exec "$vm" udevadm settle
 
+    # Idempotent — no-ops once already clean. Covers VMs created before this
+    # cleanup existed.
+    vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/grub-cleanup.sh" \
+      || warn "grub-cleanup.sh failed on $vm — ch11-boot tasks using --update-kernel=DEFAULT may be unreliable"
+
     # Only touch podman/the registry mirror when this session actually has a
     # container task — most profiles (networking, storage, lvm, ...) don't.
     if [[ "${SESSION_NEEDS_CONTAINERS:-0}" == "1" ]]; then
@@ -93,6 +98,11 @@ topology_create() {
       --profile "$profile"
 
     vm_wait_ready "$vm"
+
+    # Pin grub's DEFAULT before any task setup runs — see grub-cleanup.sh for
+    # why the base image otherwise leaves it ambiguous.
+    vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/grub-cleanup.sh" \
+      || warn "grub-cleanup.sh failed on $vm — ch11-boot tasks using --update-kernel=DEFAULT may be unreliable"
 
     # Only pull in podman/the registry mirror when this session actually has
     # a container task — most profiles (networking, storage, lvm, ...) never
