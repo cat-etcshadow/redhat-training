@@ -180,6 +180,10 @@ rhtr rhcsa show ch05-selinux/fix-file-context-v1   # print task.md for one task
 
 rhtr rhcsa progress                         # training history table: pass rate per task
 rhtr rhcsa progress --topic ch05-selinux    # filter progress by chapter
+
+rhtr rhcsa lint                             # static checks: all tasks + profiles + fixed lists, no VM
+rhtr rhcsa lint ch05-selinux/fix-file-context-v1   # lint a single task
+rhtr rhcsa lint --topic ch05-selinux        # lint one chapter's tasks only
 ```
 
 ---

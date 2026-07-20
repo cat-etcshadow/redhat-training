@@ -15,6 +15,7 @@ source "$RHTR_DIR/lib/progress.sh"
 source "$RHTR_DIR/lib/list.sh"
 source "$RHTR_DIR/lib/exam.sh"
 source "$RHTR_DIR/lib/history.sh"
+source "$RHTR_DIR/lib/lint.sh"
 
 # ── usage ─────────────────────────────────────────────────────────────────────
 usage() {
@@ -49,6 +50,7 @@ usage() {
     list-fixed
     show          <chapter/task-variant>
     progress      [--topic <ch>]
+    lint          [<chapter/task-variant>] [--topic <ch>]
 
 EOF
 }
@@ -102,6 +104,7 @@ case "$CMD" in
   list-fixed)    cmd_list_fixed ;;
   show)          cmd_show_task "$@" ;;
   progress)      cmd_progress "$@" ;;
+  lint)          cmd_lint "$@" ;;
 
   *) echo "Unknown command: $CMD"; usage; exit 1 ;;
 esac
