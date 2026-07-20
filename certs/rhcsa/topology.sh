@@ -82,6 +82,12 @@ topology_create() {
     vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/grub-cleanup.sh" \
       || warn "grub-cleanup.sh failed on $vm — ch11-boot tasks using --update-kernel=DEFAULT may be unreliable"
 
+    vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/grub-serial-console.sh" \
+      || warn "grub-serial-console.sh failed on $vm — the GRUB menu may not be visible over 'rhtr rhcsa console'"
+
+    vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/root-unlock.sh" \
+      || warn "root-unlock.sh failed on $vm — sulogin-gated rescue/emergency targets (isolate-target-v1, repair-fstab-v1) may be unreachable"
+
     # Only touch podman/the registry mirror when this session actually has a
     # container task — most profiles (networking, storage, lvm, ...) don't.
     if [[ "${SESSION_NEEDS_CONTAINERS:-0}" == "1" ]]; then
@@ -103,6 +109,12 @@ topology_create() {
     # why the base image otherwise leaves it ambiguous.
     vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/grub-cleanup.sh" \
       || warn "grub-cleanup.sh failed on $vm — ch11-boot tasks using --update-kernel=DEFAULT may be unreliable"
+
+    vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/grub-serial-console.sh" \
+      || warn "grub-serial-console.sh failed on $vm — the GRUB menu may not be visible over 'rhtr rhcsa console'"
+
+    vm_exec_script "$vm" "$RHTR_DIR/certs/rhcsa/root-unlock.sh" \
+      || warn "root-unlock.sh failed on $vm — sulogin-gated rescue/emergency targets (isolate-target-v1, repair-fstab-v1) may be unreachable"
 
     # Only pull in podman/the registry mirror when this session actually has
     # a container task — most profiles (networking, storage, lvm, ...) never

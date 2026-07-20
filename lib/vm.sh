@@ -155,6 +155,15 @@ vm_shell() {
   incus shell "$name"
 }
 
+# Attach to the VM's raw serial console — unlike vm_shell/incus exec, this
+# works without the incus-agent, so it's the only way in at the GRUB menu,
+# in rd.break, or in emergency/rescue mode.
+vm_console() {
+  local name="$1"
+  info "Attaching to console of $name — Ctrl+a q to detach"
+  incus console "$name"
+}
+
 # ── snapshots ─────────────────────────────────────────────────────────────────
 SNAPSHOT_NAME="pre-exam"
 

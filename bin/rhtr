@@ -33,6 +33,7 @@ usage() {
     new       [--profile <name>] [--fixed <name>] [--topic <ch>] [--rhel <8|9|10>]
     train     [--topic <ch>] [--difficulty easy|medium|hard] [--rhel <8|9|10>]
     shell     [--node <name>]
+    console   [--node <name>]   (raw serial console — for GRUB/rd.break/rescue mode)
     grade
     hint      [<task-number>]
     reset
@@ -87,6 +88,7 @@ case "$CMD" in
   new)          cmd_new "$@" ;;
   train)        cmd_train "$@" ;;
   shell)        cmd_shell "$@" ;;
+  console)      cmd_console "$@" ;;
   grade)        cmd_grade ;;
   hint)         cmd_hint "$@" ;;
   reset)        cmd_reset ;;

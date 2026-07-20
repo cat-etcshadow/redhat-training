@@ -301,6 +301,36 @@ cmd_shell() {
   fi
 }
 
+cmd_console() {
+  rhtr_require_state
+  source "$STATE_DIR/exam.conf"
+  source "$RHTR_DIR/certs/$CERT/topology.sh"
+  topology_names
+  _ensure_vms_running
+
+  local node=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --node) node="$2"; shift 2 ;;
+      *) die "Unknown flag: $1" ;;
+    esac
+  done
+
+  if [[ -n "$node" ]]; then
+    local found=0
+    for vm in "${VM_NAMES[@]}"; do
+      if [[ "$vm" == *"$node"* ]]; then
+        vm_console "$vm"; found=1; break
+      fi
+    done
+    if [[ $found -eq 0 ]]; then
+      die "Node '$node' not found. Available: ${VM_NAMES[*]}"
+    fi
+  else
+    vm_console "${VM_NAMES[0]}"
+  fi
+}
+
 cmd_grade() {
   rhtr_require_state
   source "$STATE_DIR/exam.conf"
