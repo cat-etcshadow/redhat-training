@@ -91,8 +91,8 @@ print(max((json.loads(l)['pct'] for l in open('$hist_file')), default=0))
 ")
   echo "  Exams saved: $exam_count   Best overall score: ${best_overall}%"
   echo ""
-  printf "  %-28s %8s %8s %9s  %s\n" "Topic" "Best" "Last" "Attempts" "Last date"
-  printf '  %s\n' "$(printf '─%.0s' {1..76})"
+  printf "  %-28s %8s %8s %8s %9s  %s\n" "Topic" "Best" "Last" "Avg" "Attempts" "Last date"
+  printf '  %s\n' "$(printf '─%.0s' {1..85})"
 
   local agg
   agg=$(python3 - "$hist_file" <<'PY'
@@ -106,24 +106,27 @@ for e in entries:
         if total <= 0:
             continue
         pct = v["earned"] * 100 // total
-        rec = topics.setdefault(t, {"best": pct, "last": pct, "date": e["date"], "n": 0})
+        rec = topics.setdefault(t, {"best": pct, "last": pct, "date": e["date"], "n": 0, "sum": 0})
         rec["n"] += 1
+        rec["sum"] += pct
         if e["date"] >= rec["date"]:
             rec["last"] = pct
             rec["date"] = e["date"]
         rec["best"] = max(rec["best"], pct)
 
 for t, r in topics.items():
-    print(f"{t}|{r['best']}|{r['last']}|{r['n']}|{r['date'][:10]}")
+    avg = r["sum"] // r["n"]
+    print(f"{t}|{r['best']}|{r['last']}|{avg}|{r['n']}|{r['date'][:10]}")
 PY
 )
 
-  declare -A best_map last_map n_map date_map
+  declare -A best_map last_map avg_map n_map date_map
   if [[ -n "$agg" ]]; then
-    while IFS='|' read -r topic best last n date; do
+    while IFS='|' read -r topic best last avg n date; do
       [[ -z "$topic" ]] && continue
       best_map[$topic]=$best
       last_map[$topic]=$last
+      avg_map[$topic]=$avg
       n_map[$topic]=$n
       date_map[$topic]=$date
     done <<< "$agg"
@@ -143,12 +146,12 @@ PY
 
   while IFS= read -r topic; do
     if [[ -n "${best_map[$topic]:-}" ]]; then
-      local best=${best_map[$topic]} last=${last_map[$topic]} n=${n_map[$topic]} date=${date_map[$topic]}
+      local best=${best_map[$topic]} last=${last_map[$topic]} avg=${avg_map[$topic]} n=${n_map[$topic]} date=${date_map[$topic]}
       local colour
       [[ $best -ge 70 ]] && colour="$C_GREEN" || colour="$C_RED"
-      printf "  %-28s ${colour}%7s%%${C_RESET} %7s%% %9s  %s\n" "$topic" "$best" "$last" "$n" "$date"
+      printf "  %-28s ${colour}%7s%%${C_RESET} %7s%% %7s%% %9s  %s\n" "$topic" "$best" "$last" "$avg" "$n" "$date"
     else
-      printf "  ${C_DIM}%-28s %8s %8s %9s  %s${C_RESET}\n" "$topic" "-" "-" "0" "never"
+      printf "  ${C_DIM}%-28s %8s %8s %8s %9s  %s${C_RESET}\n" "$topic" "-" "-" "-" "0" "never"
     fi
   done <<< "$sorted"
 
