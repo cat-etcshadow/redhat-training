@@ -444,11 +444,11 @@ library compared against the current EX200/EX294 objectives.
 
 ### 11c — Fix: weak grading / wrong solutions (RHCSA)
 
-- [ ] `ch03-users/create-users-v{1,2}/grade.sh` — required password value never
+- [x] `ch03-users/create-users-v{1,2}/grade.sh` — required password value never
       verified, any hash passes; check the hash against `{{PASSWORD}}`
-- [ ] `ch09-storage/add-partition-{ext4,xfs,gpt}-v1`, `persistent-mount-label-v1`
+- [x] `ch09-storage/add-partition-{ext4,xfs,gpt}-v1`, `persistent-mount-label-v1`
       — `{{PART_SIZE}}` is required by task.md but never graded; assert size ±tolerance
-- [ ] `ch16-containers/container-registry-v1/grade.sh` — two report-file greps
+- [x] `ch16-containers/container-registry-v1/grade.sh` — two report-file greps
       satisfiable with `echo`; assert on podman state instead where possible
 - [ ] **15 tasks whose `solution.sh` hardcodes example values instead of using
       their params vars** (shown text is wrong for the actual instance):
