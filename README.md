@@ -151,10 +151,19 @@ rhtr rhcsa train --rhel 9                   # specify RHEL version
 rhtr rhcsa shell                            # open shell in exam VM
 rhtr rhce  shell --node control             # RHCE: shell into specific node
 rhtr rhce  shell --node node1
+rhtr rhcsa console                          # raw serial console — GRUB, rd.break, rescue/emergency mode
+rhtr rhce  console --node control           # RHCE: console into specific node
 rhtr rhcsa hint                             # train mode only: show hint for current task
 rhtr rhcsa grade                            # run all graders, print score report
 rhtr rhcsa status                           # show timer, task count, current score if graded
 ```
+
+`shell` goes through the incus-agent and needs the VM fully booted and networked;
+it won't connect before boot finishes or once something (rescue.target, an
+emergency-mode drop) has stopped the agent. `console` attaches to the VM's raw
+serial device instead — slower and less convenient for everyday work, but it's
+the only thing that works at the GRUB menu, in a dracut `rd.break` shell, or
+whenever the agent itself is down.
 
 ### Session management
 
@@ -516,6 +525,17 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
   filesystem-type volumes cannot be attached to VMs.
 - Launching the VM with `security.secureboot=false` avoids a known `blk_mq_get_tag`
   kernel panic on first boot.
+- The base image ships GRUB with `GRUB_TERMINAL_OUTPUT="gfxterm"` only — no
+  serial terminal — so the GRUB menu renders to a framebuffer `incus console`
+  (serial) can't see. `grub-serial-console.sh` adds `serial` alongside the
+  existing terminal values at VM creation, so `rhtr <cert> console` can
+  actually show and drive the menu.
+- root ships **locked** by default (cloud-init hardening: no root login).
+  That's fine for `rd.break` (drops straight into a root shell, no login
+  prompt), but `systemctl isolate rescue.target` and an automatic emergency-
+  mode drop both go through `sulogin`, which refuses everyone — console
+  included — while root is locked. `root-unlock.sh` sets a known root
+  password at VM creation so sulogin-gated targets stay reachable.
 
 ---
 
