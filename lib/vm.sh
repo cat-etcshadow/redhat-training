@@ -115,7 +115,12 @@ vm_exec_script() {
     rc=0
     # </dev/null prevents incus exec from consuming the caller's stdin (e.g. a
     # while-loop file descriptor), which would swallow remaining loop iterations.
-    incus exec "$name" -- bash "$remote" </dev/null &>"$out" || rc=$?
+    # setsid -w detaches the script (and any `cmd &` it backgrounds) from this
+    # exec's session — without it, a task's backgrounded child (e.g. a test
+    # HTTP server) stays tied to the exec channel and the whole call hangs
+    # forever after the script itself has finished. -w makes setsid wait and
+    # forward the real exit code even on the internal-fork fallback path.
+    incus exec "$name" -- setsid -w bash "$remote" </dev/null &>"$out" || rc=$?
     incus exec "$name" -- rm -f "$remote" </dev/null &>/dev/null || true
     if [[ $rc -eq 0 ]]; then
       rm -f "$out"
