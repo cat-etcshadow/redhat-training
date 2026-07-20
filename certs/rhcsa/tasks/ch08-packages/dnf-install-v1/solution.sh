@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-dnf install -y tmux man-pages
+dnf install -y zip man-pages
