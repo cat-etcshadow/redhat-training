@@ -5,11 +5,10 @@
 grade_all_tasks() {
   rhtr_require_state
 
-  local cert duration pass_threshold mode
   source "$STATE_DIR/exam.conf"
 
   [[ -f "$STATE_DIR/active-tasks.txt" ]] \
-    || die "No task list found. Re-run: rhtr $cert new"
+    || die "No task list found. Re-run: rhtr $CERT new"
 
   # Determine timing state
   local now; now=$(date +%s)
@@ -75,6 +74,68 @@ grade_all_tasks() {
   done
 
   print_score "$earned_pts" "$total_pts" "${PASS_THRESHOLD:-70}"
+}
+
+# ── grade a single task by its position number ────────────────────────────────
+# Deliberately read-only w.r.t. grades.txt/history/progress — it's a quick
+# per-task check, not a partial exam run. grades.txt's line order doubles as
+# the displayed task number everywhere else (print_cached_report, save), so
+# writing a single result into it here would either desync those numbers or
+# require reworking that format; simplest and safest is to leave the file
+# alone and let the caller (cmd_grade) decide whether to record train-mode
+# progress for this one task, via the GRADE_ONE_TASK_* globals set below.
+grade_one_task() {
+  local task_num="$1"
+  rhtr_require_state
+
+  source "$STATE_DIR/exam.conf"
+
+  [[ -f "$STATE_DIR/active-tasks.txt" ]] \
+    || die "No task list found. Re-run: rhtr $CERT new"
+
+  local task_dirs=()
+  mapfile -t task_dirs < "$STATE_DIR/active-tasks.txt"
+  local total_tasks=${#task_dirs[@]}
+
+  [[ "$task_num" =~ ^[0-9]+$ ]] \
+    || die "--task must be a number (got '$task_num')"
+  [[ "$task_num" -ge 1 && "$task_num" -le "$total_tasks" ]] \
+    || die "--task $task_num is out of range — this session has $total_tasks task(s) (see: rhtr $CERT tasks)"
+
+  local task_dir="${task_dirs[$((task_num - 1))]}"
+
+  local POINTS=0 TITLE="" DIFFICULTY="" RHEL_VERSIONS=""
+  source "$task_dir/meta.sh"
+
+  local grade_script="$task_dir/grade.sh"
+  local result="FAIL" exit_code=1 output=""
+
+  if [[ ! -f "$grade_script" ]]; then
+    warn "No grade.sh in $(task_short_name "$task_dir") — skipping"
+  else
+    output=$(_run_task_script "${VM_NAMES[0]}" "$grade_script" "$task_dir" 2>&1) && exit_code=0 || exit_code=$?
+  fi
+
+  [[ $exit_code -eq 0 ]] && result="PASS"
+  local pts_earned=0
+  [[ $result == "PASS" ]] && pts_earned=$POINTS
+
+  echo ""
+  echo -e "${C_BOLD}Grading task $task_num/$total_tasks${C_RESET} — $NAME"
+  echo ""
+  _print_task_row "$task_num" "$result" "$(task_short_name "$task_dir")" "$POINTS" "$pts_earned"
+
+  if [[ $result == "FAIL" ]]; then
+    [[ -n "$output" ]] && echo -e "   ${C_DIM}$output${C_RESET}"
+    [[ "${MODE:-exam}" == "train" ]] && _show_solution "$task_dir"
+  fi
+
+  echo ""
+  echo -e "  ${C_DIM}(single-task check — run 'rhtr $CERT grade' with no --task for the full session score)${C_RESET}"
+  echo ""
+
+  GRADE_ONE_TASK_DIR="$task_dir"
+  GRADE_ONE_TASK_RESULT="$result"
 }
 
 # ── display helpers ───────────────────────────────────────────────────────────
@@ -157,7 +218,7 @@ print_cached_report() {
   rhtr_require_state
   [[ -f "$STATE_DIR/grades.txt" ]] || die "No grades yet. Run: rhtr <cert> grade"
 
-  local cert; source "$STATE_DIR/exam.conf"
+  source "$STATE_DIR/exam.conf"
   local total_pts=0 earned_pts=0 task_num=0
 
   echo ""

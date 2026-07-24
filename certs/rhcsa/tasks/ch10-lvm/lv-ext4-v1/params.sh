@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Pool separate from create-lv-v1 (vg_data/lv_data /mnt/data, vg_web/lv_web, etc.)
-VG_NAMES=(vg_ext4 vg_store vg_files)
+# Disjoint from create-lv-v1's and extend-lv-v1's VG_NAME pools — VG names
+# are global, so a shared value would make one task's vgcreate collide with
+# another's even though each runs on its own dedicated disk.
+VG_NAMES=(vg_ext4 vg_e4store vg_files)
 LV_NAMES=(lv_ext4 lv_store lv_files)
 LV_SIZES=(300 400 500 600)
 MOUNT_POINTS=(/mnt/e4data /mnt/e4store /mnt/e4files /mnt/e4vol)

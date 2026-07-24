@@ -9,6 +9,7 @@ cmd_new() {
   local fixed_name=""
   local topic_override=""
   RHEL_VERSION="${DEFAULT_RHEL_VERSION:-9}"
+  NODE_COUNT=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -16,6 +17,7 @@ cmd_new() {
       --fixed)   fixed_name="$2";   shift 2 ;;
       --topic)   topic_override="$2"; shift 2 ;;
       --rhel)    RHEL_VERSION="$2";  shift 2 ;;
+      --nodes)   NODE_COUNT="$2";   shift 2 ;;
       *) die "Unknown flag: $1" ;;
     esac
   done
@@ -30,6 +32,11 @@ cmd_new() {
   [[ ${#selected_tasks[@]} -gt 0 ]] \
     || die "No compatible tasks found for RHEL $RHEL_VERSION. Try adding tasks or changing --rhel."
 
+  _filter_tasks_by_node_count selected_tasks
+
+  [[ ${#selected_tasks[@]} -gt 0 ]] \
+    || die "--nodes $NODE_COUNT excludes every task in this selection. Raise --nodes or pick a different --profile/--fixed/--topic."
+
   _start_session "exam" "${selected_tasks[@]}"
 }
 
@@ -40,12 +47,14 @@ cmd_train() {
   local topic_override=""
   local filter_diff=""
   RHEL_VERSION="${DEFAULT_RHEL_VERSION:-9}"
+  NODE_COUNT=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --topic)      topic_override="$2"; shift 2 ;;
       --difficulty) filter_diff="$2";    shift 2 ;;
       --rhel)       RHEL_VERSION="$2";   shift 2 ;;
+      --nodes)      NODE_COUNT="$2";     shift 2 ;;
       *) die "Unknown flag: $1" ;;
     esac
   done
@@ -88,7 +97,59 @@ cmd_train() {
 
   [[ ${#selected_tasks[@]} -gt 0 ]] || die "No tasks match the given filters."
 
+  _filter_tasks_by_node_count selected_tasks
+
+  [[ ${#selected_tasks[@]} -gt 0 ]] \
+    || die "--nodes $NODE_COUNT excludes every task in this selection. Raise --nodes or pick a different --topic/--difficulty."
+
   _start_session "train" "${selected_tasks[@]}"
+}
+
+# ── node-count filtering ────────────────────────────────────────────────────
+# --nodes only trims the VM footprint (see certs/rhce/topology.sh); on its
+# own that leaves task selection unaware of it, so a profile/topic/fixed set
+# that references more nodes than were built can never pass grading — node4/5
+# just don't exist, and the failure looks like a content bug instead of a
+# node-count mismatch. (Incident: --nodes 2 combined with the full RHCE task
+# set burned an entire exam-mode timer before the real cause was found.)
+#
+# Rather than rejecting the whole session, drop the tasks that don't fit and
+# report what got excluded — --nodes 3 against the "full" profile should just
+# run the subset of full-profile tasks that work with 3 nodes.
+_task_required_nodes() {
+  local task_dir="$1"
+  # tasks with zero node references are legitimate (e.g. git/vault-only
+  # tasks) and make the grep chain exit non-zero; under the script's global
+  # set -e that would otherwise abort the whole command, so force success.
+  grep -hoE "node[1-5]" "$task_dir"/*.sh 2>/dev/null | grep -oE "[1-5]" | sort -rn | head -1
+  return 0
+}
+
+# Filters the named array variable in place against $NODE_COUNT, warning
+# about anything dropped. No-op when --nodes wasn't passed.
+_filter_tasks_by_node_count() {
+  local -n _tasks_ref="$1"
+  [[ -n "${NODE_COUNT:-}" ]] || return 0
+
+  local kept=() dropped=() task_dir needed
+  for task_dir in "${_tasks_ref[@]}"; do
+    needed=$(_task_required_nodes "$task_dir")
+    if [[ -n "$needed" && "$needed" -gt "$NODE_COUNT" ]]; then
+      dropped+=("$(task_short_name "$task_dir") (needs node$needed)")
+    else
+      kept+=("$task_dir")
+    fi
+  done
+
+  if [[ ${#dropped[@]} -gt 0 ]]; then
+    warn "--nodes $NODE_COUNT excludes ${#dropped[@]} task(s) that reference nodes beyond that count:"
+    local d
+    for d in "${dropped[@]}"; do
+      warn "  - $d"
+    done
+  fi
+
+  _tasks_ref=("${kept[@]}")
 }
 
 # ── shared session start ──────────────────────────────────────────────────────
@@ -132,6 +193,7 @@ CERT="$CERT"
 NAME="$NAME"
 MODE="$mode"
 RHEL_VERSION="$RHEL_VERSION"
+NODE_COUNT="${NODE_COUNT:-}"
 DURATION=$DURATION
 PASS_THRESHOLD=${PASS_THRESHOLD:-70}
 DEADLINE_EPOCH=$DEADLINE_EPOCH
@@ -337,10 +399,26 @@ cmd_grade() {
   source "$RHTR_DIR/certs/$CERT/topology.sh"
   topology_names
   _ensure_vms_running
+
+  local task_num=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --task) task_num="$2"; shift 2 ;;
+      *) die "Unknown flag: $1" ;;
+    esac
+  done
+
+  local mode; mode=$(grep '^MODE=' "$STATE_DIR/exam.conf" | cut -d'"' -f2)
+
+  if [[ -n "$task_num" ]]; then
+    grade_one_task "$task_num"
+    [[ "$mode" == "train" ]] && progress_record "$CERT" "$GRADE_ONE_TASK_DIR" "$GRADE_ONE_TASK_RESULT"
+    return
+  fi
+
   grade_all_tasks
 
   # Record results in progress (train mode only, or always — your call)
-  local mode; mode=$(grep '^MODE=' "$STATE_DIR/exam.conf" | cut -d'"' -f2)
   if [[ "$mode" == "train" ]] && [[ -f "$STATE_DIR/grades.txt" ]]; then
     while IFS='|' read -r task_dir result _pts_earned _pts_total; do
       progress_record "$CERT" "$task_dir" "$result"

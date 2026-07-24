@@ -21,14 +21,23 @@ select_tasks() {
 
 # ── weighted random draw ──────────────────────────────────────────────────────
 
+# Accumulates picks across ALL chapters (not just the current one) before
+# emitting, so a task's CONFLICTS (declared in meta.sh) can be honoured even
+# when the conflicting task lives in a different chapter/topic — e.g. two
+# tasks that both claim group_vars/all but in ch03 and ch09 respectively.
+# A chapter processed earlier in TOPICS[] wins any conflict; see README.
 _select_weighted() {
+  local _weighted_selected=()
   for entry in "${TOPICS[@]}"; do
     local chapter="${entry%%:*}"
     local count="${entry##*:}"
     [[ "$count" =~ ^[0-9]+$ ]] || die "Invalid task count '$count' in profile entry '$entry'"
     [[ $count -eq 0 ]] && continue
-    _select_random_from_chapter "$chapter" "$count"
+    local picked=()
+    mapfile -t picked < <(_select_random_from_chapter "$chapter" "$count" _weighted_selected)
+    _weighted_selected+=("${picked[@]}")
   done
+  printf '%s\n' "${_weighted_selected[@]}"
 }
 
 _resolve_chapter_dir() {
@@ -52,6 +61,7 @@ _resolve_chapter_dir() {
 _select_random_from_chapter() {
   local chapter="$1"
   local count="$2"
+  local -n _already_selected="$3"   # abs paths picked so far this session (other chapters + this one)
   local chapter_dir
   chapter_dir=$(_resolve_chapter_dir "$CERT" "$chapter") \
     || { warn "Chapter dir not found for topic '$chapter' (skipping)"; return; }
@@ -66,12 +76,95 @@ _select_random_from_chapter() {
     return
   fi
 
-  # shuf from the compatible list, take up to $count
-  printf '%s\n' "${available[@]}" | shuf | head -n "$count"
+  local shuffled=()
+  mapfile -t shuffled < <(printf '%s\n' "${available[@]}" | shuf)
+
+  # Draw one at a time instead of a blind `head -n count`, skipping any
+  # candidate whose CONFLICTS (meta.sh) intersects what's already selected —
+  # a plain shuf|head has no way to avoid two tasks that can't both be
+  # satisfied in the same session (see README: "CONFLICTS").
+  local picked=() combined=("${_already_selected[@]}") skipped=() d
+  for d in "${shuffled[@]}"; do
+    [[ ${#picked[@]} -ge $count ]] && break
+    if _task_conflicts_with_selected "$d" combined; then
+      skipped+=("$(task_short_name "$d")")
+      continue
+    fi
+    picked+=("$d")
+    combined+=("$d")
+  done
+
+  if [[ ${#picked[@]} -lt $count ]]; then
+    warn "Only ${#picked[@]}/$count non-conflicting task(s) available in $chapter"
+    [[ ${#skipped[@]} -gt 0 ]] && warn "  skipped (CONFLICTS with an already-selected task): ${skipped[*]}"
+  fi
+
+  printf '%s\n' "${picked[@]}"
+}
+
+# ── conflict checking (CONFLICTS field in meta.sh) ────────────────────────────
+
+# Emits a task's declared CONFLICTS entries (relative "chXX-topic/task" paths,
+# same format as FIXED_TASKS), one per line. Empty if the field is unset.
+_task_conflicts_list() {
+  local task_dir="$1"
+  local CONFLICTS=()
+  # shellcheck source=/dev/null
+  source "$task_dir/meta.sh"
+  [[ ${#CONFLICTS[@]} -eq 0 ]] && return 0
+  printf '%s\n' "${CONFLICTS[@]}"
+}
+
+# Returns 0 if $1 (an absolute task dir) conflicts with any task dir in the
+# array named by $2. CONFLICTS only needs to be declared on one side of a
+# pair — checked in both directions so authors don't have to duplicate it.
+_task_conflicts_with_selected() {
+  local task_dir="$1"
+  local -n _sel_ref="$2"
+  local task_name; task_name=$(task_short_name "$task_dir")
+
+  local my_conflicts=()
+  mapfile -t my_conflicts < <(_task_conflicts_list "$task_dir")
+
+  local other other_name other_conflicts c
+  for other in "${_sel_ref[@]}"; do
+    other_name=$(task_short_name "$other")
+    for c in "${my_conflicts[@]}"; do
+      [[ -n "$c" && "$c" == "$other_name" ]] && return 0
+    done
+    other_conflicts=()
+    mapfile -t other_conflicts < <(_task_conflicts_list "$other")
+    for c in "${other_conflicts[@]}"; do
+      [[ -n "$c" && "$c" == "$task_name" ]] && return 0
+    done
+  done
+  return 1
+}
+
+# Returns 0 if two specific task dirs conflict with each other (either
+# direction). Used by lint.sh for static pairwise checks — the selector
+# itself uses _task_conflicts_with_selected against a whole accumulated list.
+_task_conflicts_pair() {
+  local a="$1" b="$2"
+  local a_name; a_name=$(task_short_name "$a")
+  local b_name; b_name=$(task_short_name "$b")
+
+  local a_conflicts=() b_conflicts=() c
+  mapfile -t a_conflicts < <(_task_conflicts_list "$a")
+  mapfile -t b_conflicts < <(_task_conflicts_list "$b")
+
+  for c in "${a_conflicts[@]}"; do [[ -n "$c" && "$c" == "$b_name" ]] && return 0; done
+  for c in "${b_conflicts[@]}"; do [[ -n "$c" && "$c" == "$a_name" ]] && return 0; done
+  return 1
 }
 
 # ── fixed list ────────────────────────────────────────────────────────────────
 
+# Deliberately does NOT drop conflicting tasks the way _select_random_from_chapter
+# does — a fixed list is hand-curated, so silently dropping one member of a
+# CONFLICTS pair would change its point total without the author noticing.
+# `rhtr <cert> lint` catches conflicting pairs in fixed lists as a hard error
+# instead; the fix belongs in the .conf file, not at runtime.
 _select_fixed() {
   for rel in "${FIXED_TASKS[@]}"; do
     local abs="$RHTR_DIR/certs/$CERT/tasks/$rel"
@@ -84,6 +177,11 @@ _select_fixed() {
 
 # ── topic-all (train / topic profile) ────────────────────────────────────────
 
+# Deliberately does NOT skip conflicting tasks — topic-all means "every task
+# in this chapter", and a same-chapter CONFLICTS pair can never be avoided by
+# dropping one side without silently shrinking what `train --topic` covers.
+# `rhtr <cert> lint` treats a same-chapter conflict as a hard error, forcing
+# the underlying task content to be fixed rather than the pair suppressed.
 _select_topic_all() {
   local chapter="$1"
   local chapter_dir

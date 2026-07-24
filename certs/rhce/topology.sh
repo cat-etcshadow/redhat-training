@@ -3,15 +3,23 @@
 #
 # Provides: topology_create, topology_destroy
 # Reads:    RHEL_VERSION (set by exam.sh)
+#           NODE_COUNT   (set by exam.sh from --nodes, default 5)
 #
 # Environment:
 #   1 control node:    rhtr-rhce-control-<version>  (Rocky Linux, ansible-core +
 #                       ansible-navigator + podman + git installed)
-#   5 managed nodes:   rhtr-rhce-node{1,2,3,4,5}-<version>
+#   1-5 managed nodes: rhtr-rhce-node{1..NODE_COUNT}-<version>
 #
-# Network layout (via Incus bridge):
+# Network layout (via Incus bridge), at the full NODE_COUNT=5:
 #   control  → node1 (dev), node2 (test), node3 (prod), node4 (prod), node5 (balancers)
 # SSH key auth from control → all nodes configured by topology_create.
+#
+# NOTE: most task setup/grade scripts hardcode a 5-node inventory (node1-5,
+# dev/test/prod/balancers groups). lib/exam.sh's _filter_tasks_by_node_count
+# drops any selected task that references a node beyond NODE_COUNT (and warns
+# about what it dropped), so --profile full/--fixed/--topic + --nodes N just
+# runs the subset of that selection that fits in N nodes — it does not need
+# to be combined with a topic already scoped to fewer nodes.
 
 _rhce_vm()      { echo "rhtr-rhce-${1}-${RHEL_VERSION}"; }
 _rhce_img()     { echo "rocky${RHEL_VERSION}"; }
@@ -22,14 +30,15 @@ NODE_NAMES=()
 VM_NAMES=()
 
 topology_names() {
+  local node_count="${NODE_COUNT:-5}"
+  [[ "$node_count" =~ ^[1-5]$ ]] || die "Invalid NODE_COUNT '$node_count' — must be 1-5"
+
   CONTROL_NAME=$(_rhce_vm "control")
-  NODE_NAMES=(
-    $(_rhce_vm "node1")
-    $(_rhce_vm "node2")
-    $(_rhce_vm "node3")
-    $(_rhce_vm "node4")
-    $(_rhce_vm "node5")
-  )
+  NODE_NAMES=()
+  local i
+  for (( i=1; i<=node_count; i++ )); do
+    NODE_NAMES+=("$(_rhce_vm "node$i")")
+  done
   VM_NAMES=("$CONTROL_NAME" "${NODE_NAMES[@]}")
 }
 
@@ -111,8 +120,9 @@ NODEBOOT
     # inventory hostnames are the bare node names (node1..node5); strip both the
     # rhtr-rhce- prefix and the -<version> suffix off the full VM name
     local short; short="${node#rhtr-rhce-}"; short="${short%-"${RHEL_VERSION}"}"
-    local ip; ip=$(incus info "$node" | awk '/inet /{print $2}' | cut -d/ -f1 | head -1)
-    [[ -n "$ip" ]] && incus exec "$CONTROL_NAME" -- bash -c \
+    local ip; ip=$(incus info "$node" | awk '/inet:/{print $2}' | cut -d/ -f1 | head -1)
+    [[ -n "$ip" ]] || die "Could not determine IP for $node — 'incus info' output format may have changed; check the awk pattern above"
+    incus exec "$CONTROL_NAME" -- bash -c \
       "grep -qw '$short' /etc/hosts || echo '$ip $short' >> /etc/hosts"
   done
 

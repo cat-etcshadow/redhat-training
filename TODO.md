@@ -414,12 +414,19 @@ library compared against the current EX200/EX294 objectives.
       same kind of per-task extra-disk plumbing built for RHCSA, extended to
       attach to specific managed nodes (prod = node3/node4, or `all` for
       error-handling-v1) — a bigger, separate lift than the ch04 rework.
-      **None of this ch04 rework has been run against live VMs yet** (no VM
-      access in this session) — treat it as needing a real
-      `rhtr rhce new`/`grade` pass before trusting it; likely first-try bugs
-      in exact module output formats (e.g. `nmcli -g` field ordering,
-      `getsebool`/`semanage fcontext -l` output shape) that only show up
-      against a real Rocky 9 managed node.
+      **First live-VM run (2026-07-24) hit exactly this kind of bug:**
+      `selinux-playbook-v1/setup.sh`'s two new `ansible prod ...` calls ran
+      from `student`'s home dir instead of `$ANSIBLE_DIR`, so `ansible.cfg`'s
+      `host_key_checking = False` wasn't picked up — the first-ever SSH from
+      `student` to node3/node4 hit an unaccepted host key non-interactively
+      and `ansible` reported both hosts unreachable (rc=4), failing session
+      setup for the whole exam. Fixed by `cd $ANSIBLE_DIR &&` before both
+      calls, matching the pattern `grade.sh` already used. Still untested:
+      the other 7 reworked ch04 `grade.sh` scripts' exact module output
+      formats (e.g. `nmcli -g` field ordering, `getsebool`/
+      `semanage fcontext -l` output shape) against a real Rocky 9 managed
+      node — only `selinux-playbook-v1` has been exercised end-to-end so
+      far.
 - [x] **`container-user-service-v1` claims RHEL 10 but solution uses
       `podman generate systemd`** — removed in podman 5.x (RHEL 10). Capped
       `RHEL_VERSIONS` to `"8 9"` rather than attempting a Quadlet rewrite

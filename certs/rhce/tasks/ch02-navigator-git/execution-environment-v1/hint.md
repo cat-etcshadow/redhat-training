@@ -1,6 +1,6 @@
 ## Hint
 
-- `podman pull quay.io/ansible/execution-environment1:latest`
+- `podman pull quay.io/ansible/awx-ee:latest`
 - `execution-environment: enabled: true` plus `execution-environment: image:
   <name>` under the `ansible-navigator:` key
 - With execution environments enabled, `ansible-navigator` mounts your

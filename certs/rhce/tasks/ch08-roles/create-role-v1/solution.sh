@@ -42,7 +42,7 @@ EOF
 
 cat > "$PLAYBOOK_FILE" <<EOF
 ---
-- name: Apply apache role to webservers
+- name: Apply $ROLE_NAME role to webservers
   hosts: webservers
   become: true
   roles:

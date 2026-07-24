@@ -10,7 +10,7 @@
   ```
   <ip_address> <fqdn> <shortname>
   ```
-  Use `hostvars`, `groups['all']`, `ansible_facts['default_ipv4']['address']`, and `ansible_facts['fqdn']`.
+  Use `hostvars`, `groups['all']`, `ansible_facts['default_ipv4']['address']`, `ansible_facts['fqdn']`, and `ansible_facts['hostname']`.
 
 **Step 2:** Create a playbook **{{PLAYBOOK_FILE}}** that:
 - Runs on **all** managed hosts (to gather facts)

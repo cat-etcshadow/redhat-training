@@ -63,6 +63,12 @@ through a small set of primitives. Here is what happens behind each `rhtr` comma
 fail. Output is captured and shown in train mode as a diagnostic. Points come from
 `meta.sh`, not from the grader — the grader only signals pass/fail.
 
+`grade --task <N>` grades only task `N` (per the numbering shown by `rhtr <cert> tasks`)
+instead of the whole session — a quick check while working, without re-running every
+other grader. It's a read-only check: unlike a full `grade` run, it doesn't touch
+`grades.txt` (so `rhtr <cert> status`/`save` still reflect the last full run), though it
+does still update train-mode per-task progress.
+
 ### `rhtr rhcsa reset` — restoring clean state
 
 `incus snapshot restore rhtr-rhcsa-server-9 pre-exam` rolls the VM back to the
@@ -155,6 +161,7 @@ rhtr rhcsa console                          # raw serial console — GRUB, rd.br
 rhtr rhce  console --node control           # RHCE: console into specific node
 rhtr rhcsa hint                             # train mode only: show hint for current task
 rhtr rhcsa grade                            # run all graders, print score report
+rhtr rhcsa grade --task 10                  # grade only task 10 (see: rhtr rhcsa tasks)
 rhtr rhcsa status                           # show timer, task count, current score if graded
 ```
 
@@ -296,11 +303,26 @@ CHAPTER=5
 TITLE="Fix SELinux file context on web directory"
 DIFFICULTY="medium"       # easy | medium | hard
 RHEL_VERSIONS="8 9 10"   # space-separated; omit a version if the task is incompatible
+CONFLICTS=("ch09-vault/vault-group-vars-v1")   # optional — see below
 ```
 
 `RHEL_VERSIONS` tells the selector which base images this task can run against.
 A task that uses `semanage` syntax that changed in RHEL 10 would set `RHEL_VERSIONS="8 9"`.
 The selector silently skips incompatible tasks when drawing for a specific `--rhel` version.
+
+`CONFLICTS` lists other tasks (same `chXX-topic/task-slug` relative paths used by
+`FIXED_TASKS`) that must never be selected into the same session as this one — because
+one task's `setup.sh` destroys state another task's `setup.sh`/`task.md` assumes will
+persist, or because the two require mutually exclusive states of the same resource
+(e.g. one needs a path to be a file, the other needs the same path to be a directory).
+Declare it on either side of a pair — the selector checks both directions, so you don't
+have to duplicate it. A random weighted draw (`new --profile`) automatically skips a
+candidate that conflicts with what's already been drawn, even across chapters. A
+same-chapter conflict can't be avoided that way, though — `train --topic` always pulls
+every task in a chapter together — so `rhtr <cert> lint` treats those as a hard error
+instead, same as a conflicting pair in a fixed exam list (`exams/fixed/*.conf`), which is
+hand-curated and always runs every listed task together. Run `rhtr <cert> lint` after
+adding or editing a `CONFLICTS` entry.
 
 ### grade.sh contract
 

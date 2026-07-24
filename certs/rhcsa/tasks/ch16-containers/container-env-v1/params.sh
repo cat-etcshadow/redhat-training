@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 HOST_PORTS=(8100 8200 8300 8400 8500)
-CONTAINER_NAMES=(myapp webapp svcapp testapp demoapp)
+# "myapp" excluded — ch16-containers/container-service-v1 hardcodes a
+# container also named myapp; a random collision would make one task's
+# `podman run --name myapp` fail with "name is already in use".
+CONTAINER_NAMES=(webapp svcapp testapp demoapp)
 ENV_KEYS=(APP_ENV APP_MODE RUN_ENV DEPLOY_ENV STAGE)
 ENV_VALS=(production staging development testing qa)
 

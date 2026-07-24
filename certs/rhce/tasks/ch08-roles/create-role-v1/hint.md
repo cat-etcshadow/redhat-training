@@ -1,6 +1,6 @@
 ## Hint
 
-- Create role structure: `ansible-galaxy role init roles/apache`
+- Create role structure: `ansible-galaxy role init roles/webapp`
 - Standard role directories: `tasks/`, `handlers/`, `templates/`, `defaults/`, `vars/`, `meta/`
 - `tasks/main.yml` — list of tasks (no play wrapper, just a list starting with `---`)
 - `handlers/main.yml` — same format as tasks, but they are handlers

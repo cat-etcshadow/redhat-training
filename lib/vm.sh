@@ -328,11 +328,21 @@ _vm_inject_agent_bootstrap() {
   # (virtio-ports/org.linuxcontainers.incus) appears, which tags the device
   # with SYSTEMD_WANTS=incus-agent.service; that service's ExecStartPre
   # mounts the 9p config share, copies the agent binary out of it into
-  # /run/incus_agent, then the main ExecStart launches it. No manual
-  # `systemctl enable` needed — the unit has no [Install] section because
-  # the udev TAG+="systemd" is what pulls it in.
+  # /run/incus_agent, then the main ExecStart launches it.
+  #
+  # The unit also carries [Install] WantedBy=multi-user.target and is
+  # symlinked into multi-user.target.wants/ below (like sshd.service), on
+  # top of the udev trigger. The udev SYSTEMD_WANTS only fires once, when
+  # the virtio-serial device first appears at boot — an RHCSA task that
+  # does `systemctl isolate rescue.target` (which stops the agent, since
+  # rescue.target doesn't want it) and then `systemctl isolate
+  # multi-user.target` never re-triggers that udev event, so without the
+  # Install section the agent stayed dead for the rest of the session and
+  # took every subsequent grade.sh down with it (see ch11-boot/isolate-target-v1).
+  # WantedBy=multi-user.target makes `systemctl isolate` restart it exactly
+  # like any other properly enabled service.
   sudo mkdir -p "$mnt/usr/lib/udev/rules.d"
-  sudo mkdir -p "$mnt/usr/lib/systemd/system"
+  sudo mkdir -p "$mnt/usr/lib/systemd/system/multi-user.target.wants"
 
   sudo tee "$mnt/usr/lib/udev/rules.d/99-incus-agent.rules" > /dev/null << 'RULES'
 SYMLINK=="virtio-ports/org.linuxcontainers.incus", TAG+="systemd", ENV{SYSTEMD_WANTS}+="incus-agent.service"
@@ -357,7 +367,13 @@ Restart=on-failure
 RestartSec=5s
 StartLimitInterval=60
 StartLimitBurst=10
+
+[Install]
+WantedBy=multi-user.target
 UNIT
+
+  sudo ln -sf ../incus-agent.service \
+    "$mnt/usr/lib/systemd/system/multi-user.target.wants/incus-agent.service"
 
   # Same as the stock incus-agent-setup, except the final relabel step uses
   # chcon instead of semanage fcontext + restorecon — see the chcon call
@@ -462,17 +478,28 @@ SETUP
     sudo restorecon -R \
       "$mnt/usr/lib/udev/rules.d/99-incus-agent.rules" \
       "$mnt/usr/lib/systemd/system/incus-agent.service" \
+      "$mnt/usr/lib/systemd/system/multi-user.target.wants/incus-agent.service" \
       "$mnt/usr/lib/systemd/incus-agent-setup"
   else
     local path context
     for path in \
       /usr/lib/udev/rules.d/99-incus-agent.rules \
       /usr/lib/systemd/system/incus-agent.service \
+      /usr/lib/systemd/system/multi-user.target.wants/incus-agent.service \
       /usr/lib/systemd/incus-agent-setup
     do
-      context=$(sudo chroot "$mnt" matchpathcon -n "$path" 2>/dev/null)
+      # Full path required: sudo's secure_path strips /usr/sbin from the
+      # chroot's PATH, and matchpathcon (policycoreutils) lives there.
+      context=$(sudo chroot "$mnt" /usr/sbin/matchpathcon -n "$path" 2>/dev/null)
       [[ -n "$context" ]] || die "matchpathcon found no SELinux context for $path — agent would be unlabeled and fail to execute under enforcing SELinux"
-      sudo setfattr -n security.selinux -v "$context" "$mnt$path"
+      # -h: the .wants/ entry is a symlink — label the link itself, not the
+      # unit file it points at (which was already labelled by its own loop
+      # iteration).
+      if [[ -L "$mnt$path" ]]; then
+        sudo setfattr -h -n security.selinux -v "$context" "$mnt$path"
+      else
+        sudo setfattr -n security.selinux -v "$context" "$mnt$path"
+      fi
     done
   fi
 

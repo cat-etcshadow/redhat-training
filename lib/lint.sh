@@ -59,7 +59,7 @@ _lint_check_meta() {
   fi
 
   local POINTS="" TOPIC="" CHAPTER="" TITLE="" DIFFICULTY="" RHEL_VERSIONS="" \
-        NEEDS_DISK="" NEEDS_CONTAINERS=""
+        NEEDS_DISK="" NEEDS_CONTAINERS="" CONFLICTS=()
   source "$meta" 2>/dev/null || { _lint_add ERROR "meta.sh failed to source"; return; }
 
   [[ "$POINTS" =~ ^[0-9]+$ && "$POINTS" -gt 0 ]] \
@@ -101,6 +101,18 @@ _lint_check_meta() {
     || _lint_add ERROR "NEEDS_DISK must be 0 or 1 (got '$NEEDS_DISK')"
   [[ -z "${NEEDS_CONTAINERS:-}" || "$NEEDS_CONTAINERS" == "0" || "$NEEDS_CONTAINERS" == "1" ]] \
     || _lint_add ERROR "NEEDS_CONTAINERS must be 0 or 1 (got '$NEEDS_CONTAINERS')"
+
+  local this_name; this_name=$(task_short_name "$task_dir")
+  local rel abs
+  for rel in "${CONFLICTS[@]:-}"; do
+    [[ -z "$rel" ]] && continue
+    if [[ "$rel" == "$this_name" ]]; then
+      _lint_add ERROR "CONFLICTS lists itself ('$rel')"
+      continue
+    fi
+    abs="$RHTR_DIR/certs/$CERT/tasks/$rel"
+    [[ -d "$abs" ]] || _lint_add ERROR "CONFLICTS references unknown task: $rel"
+  done
 
   return 0
 }
@@ -185,6 +197,12 @@ _lint_check_placeholders() {
 # matching meta.sh flag — the exact bug _assign_task_disks and
 # _assign_task_requirements in lib/exam.sh guard against at session-build
 # time; catching it here means it never gets that far.
+#
+# Gated on _LINT_CERT_USES_DISK/_LINT_CERT_USES_CONTAINERS (whether this
+# cert's topology.sh actually reads EXTRA_DISK_SIZES_GIB/SESSION_NEEDS_CONTAINERS)
+# — RHCE's topology installs podman unconditionally and never attaches a
+# dynamic extra disk, so NEEDS_DISK/NEEDS_CONTAINERS are inert there and
+# flagging their absence would be a systematic false positive.
 _lint_check_requirements() {
   local task_dir="$1"
   local NEEDS_DISK="" NEEDS_CONTAINERS=""
@@ -195,11 +213,15 @@ _lint_check_requirements() {
     [[ -f "$task_dir/$f" ]] && blob+=$(cat "$task_dir/$f")$'\n'
   done
 
-  if grep -qE '\$\{?(TASK_DISK_SIZE_GB|DISK_SIZE)\b' <<<"$blob" && [[ "${NEEDS_DISK:-0}" != "1" ]]; then
+  if [[ "${_LINT_CERT_USES_DISK:-0}" == "1" ]] \
+     && grep -qE '\$\{?(TASK_DISK_SIZE_GB|DISK_SIZE)\b' <<<"$blob" \
+     && [[ "${NEEDS_DISK:-0}" != "1" ]]; then
     _lint_add ERROR "references \$TASK_DISK_SIZE_GB/\$DISK_SIZE but meta.sh doesn't set NEEDS_DISK=1"
   fi
 
-  if grep -qE '\b(podman|skopeo|buildah)\b' <<<"$blob" && [[ "${NEEDS_CONTAINERS:-0}" != "1" ]]; then
+  if [[ "${_LINT_CERT_USES_CONTAINERS:-0}" == "1" ]] \
+     && grep -qE '\b(podman|skopeo|buildah)\b' <<<"$blob" \
+     && [[ "${NEEDS_CONTAINERS:-0}" != "1" ]]; then
     _lint_add ERROR "references podman/skopeo/buildah but meta.sh doesn't set NEEDS_CONTAINERS=1"
   fi
 
@@ -218,6 +240,41 @@ _lint_one_task() {
 
   (( _LINT_TASKS_CHECKED++ )) || true
   _lint_emit_result "$(task_short_name "$task_dir")"
+}
+
+# ── same-chapter conflict checks ──────────────────────────────────────────────
+# A CONFLICTS pair inside the same chapter can never be avoided at runtime —
+# `train --topic` always draws every task in a chapter together
+# (_select_topic_all in lib/select.sh doesn't consult CONFLICTS on purpose,
+# see the comment there) — so this is promoted to a hard error instead of the
+# WARN a cross-chapter pair gets in _lint_one_profile below.
+_lint_chapter_conflicts() {
+  local base="$RHTR_DIR/certs/$CERT/tasks"
+  [[ -d "$base" ]] || return 0
+  echo ""
+  echo -e "${C_BOLD}Same-chapter conflicts${C_RESET}"
+
+  local chapter_dir
+  for chapter_dir in "$base"/*/; do
+    [[ -d "$chapter_dir" ]] || continue
+    local chapter_name; chapter_name=$(basename "$chapter_dir")
+    _LINT_FINDINGS=()
+
+    local tasks=()
+    mapfile -t tasks < <(find "$chapter_dir" -mindepth 1 -maxdepth 1 -type d | sort)
+
+    if [[ ${#tasks[@]} -ge 2 ]]; then
+      local i j
+      for (( i=0; i<${#tasks[@]}; i++ )); do
+        for (( j=i+1; j<${#tasks[@]}; j++ )); do
+          _task_conflicts_pair "${tasks[$i]}" "${tasks[$j]}" \
+            && _lint_add ERROR "$(task_short_name "${tasks[$i]}") conflicts with $(task_short_name "${tasks[$j]}") — 'train --topic' always draws them together"
+        done
+      done
+    fi
+
+    _lint_emit_result "chapter/$chapter_name"
+  done
 }
 
 # ── profile checks ────────────────────────────────────────────────────────────
@@ -243,6 +300,7 @@ _lint_one_profile() {
   [[ ${#TOPICS[@]} -gt 0 ]] || _lint_add ERROR "TOPICS is empty"
 
   local entry chapter count
+  local resolved_dirs=() resolved_names=()
   for entry in "${TOPICS[@]}"; do
     chapter="${entry%%:*}"; count="${entry##*:}"
     if [[ ! "$count" =~ ^[0-9]+$ ]]; then
@@ -255,16 +313,40 @@ _lint_one_profile() {
       _lint_add ERROR "topic '$chapter' in entry '$entry' does not resolve to any chapter dir"
       continue
     fi
+    [[ "$count" -gt 0 ]] && { resolved_dirs+=("$chapter_dir"); resolved_names+=("$chapter"); }
 
-    local v
-    for v in $_LINT_CERT_RHEL_VERSIONS; do
-      local RHEL_VERSION="$v"
+    # named _rv, not v — _task_compatible's own internal `for v in
+    # $RHEL_VERSIONS` loop (lib/select.sh) doesn't declare v local, so it
+    # clobbers any enclosing `local v` via bash's dynamic scoping once it's
+    # called from inside this loop
+    local _rv
+    for _rv in $_LINT_CERT_RHEL_VERSIONS; do
+      local RHEL_VERSION="$_rv"
       local avail=0 d
       while IFS= read -r d; do
         _task_compatible "$d" && (( avail++ )) || true
       done < <(find "$chapter_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
       (( avail < count )) \
-        && _lint_add WARN "'$entry' wants $count from $chapter but only $avail compatible task(s) exist for RHEL $v"
+        && _lint_add WARN "'$entry' wants $count from $chapter but only $avail compatible task(s) exist for RHEL $_rv"
+    done
+  done
+
+  # Cross-chapter CONFLICTS pairs: merely possible, not guaranteed (the
+  # per-chapter counts are usually less than the full chapter), so this stays
+  # a WARN — _select_random_from_chapter (lib/select.sh) already avoids
+  # drawing both members of a pair together at runtime. Flagged here purely
+  # so the profile author knows the pair exists and why an exam might come up
+  # short of the requested count for one of these chapters.
+  local ci cj
+  for (( ci=0; ci<${#resolved_dirs[@]}; ci++ )); do
+    for (( cj=ci+1; cj<${#resolved_dirs[@]}; cj++ )); do
+      local ta tb
+      while IFS= read -r ta; do
+        while IFS= read -r tb; do
+          _task_conflicts_pair "$ta" "$tb" \
+            && _lint_add WARN "$(task_short_name "$ta") conflicts with $(task_short_name "$tb") — both may be drawn by this profile (${resolved_names[$ci]}+${resolved_names[$cj]}); the selector avoids pairing them, so the exam may come up short on one topic"
+        done < <(find "${resolved_dirs[$cj]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+      done < <(find "${resolved_dirs[$ci]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
     done
   done
 
@@ -317,6 +399,22 @@ _lint_one_fixed() {
     seen+=("$rel")
   done
 
+  # A fixed list is hand-curated and always runs every listed task together —
+  # unlike a profile, there's no "merely possible" case here, so a conflicting
+  # pair is a hard error, same as the same-chapter check above.
+  local abs_tasks=()
+  for rel in "${FIXED_TASKS[@]}"; do
+    abs="$RHTR_DIR/certs/$CERT/tasks/$rel"
+    [[ -d "$abs" ]] && abs_tasks+=("$abs")
+  done
+  local i j
+  for (( i=0; i<${#abs_tasks[@]}; i++ )); do
+    for (( j=i+1; j<${#abs_tasks[@]}; j++ )); do
+      _task_conflicts_pair "${abs_tasks[$i]}" "${abs_tasks[$j]}" \
+        && _lint_add ERROR "$(task_short_name "${abs_tasks[$i]}") conflicts with $(task_short_name "${abs_tasks[$j]}") — both are listed in this fixed exam"
+    done
+  done
+
   _lint_emit_result "fixed/$name"
 }
 
@@ -365,6 +463,14 @@ cmd_lint() {
   _LINT_WARN_TOTAL=0
   _LINT_TASKS_CHECKED=0
 
+  _LINT_CERT_USES_DISK=0
+  _LINT_CERT_USES_CONTAINERS=0
+  local topology_file="$RHTR_DIR/certs/$CERT/topology.sh"
+  if [[ -f "$topology_file" ]]; then
+    grep -q 'EXTRA_DISK_SIZES_GIB' "$topology_file" && _LINT_CERT_USES_DISK=1
+    grep -q 'SESSION_NEEDS_CONTAINERS' "$topology_file" && _LINT_CERT_USES_CONTAINERS=1
+  fi
+
   echo ""
   echo -e "${C_BOLD}Lint — $CERT${C_RESET}"
   echo ""
@@ -383,6 +489,7 @@ cmd_lint() {
     done < <(select_list_tasks "$CERT" "${args[@]}")
 
     if [[ -z "$filter_topic" ]]; then
+      _lint_chapter_conflicts
       _lint_profiles
       _lint_fixed_lists
     fi

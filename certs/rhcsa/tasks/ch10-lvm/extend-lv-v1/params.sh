@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-VGS=(vg_app vg_ops vg_web vg_store)
+# Disjoint from create-lv-v1's VGS pool — extend-lv-v1's setup.sh calls
+# vgcreate unconditionally (it needs a pre-existing LV to extend), so a
+# shared name would make create-lv-v1's own candidate-run `vgcreate` fail
+# with "already exists" whenever both tasks draw the same value.
+VGS=(vg_extapp vg_extops vg_extweb vg_extstore)
 LVS=(lv_app lv_ops lv_web lv_data)
 EXTEND_MBS=(200 300 400)
 MOUNTS=(/mnt/app /mnt/ops /mnt/web /mnt/store)
