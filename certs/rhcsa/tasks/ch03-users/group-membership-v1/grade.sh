@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 id "$TARGET_USER" &>/dev/null || fail "User $TARGET_USER does not exist"
 

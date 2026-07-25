@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 firewall-cmd --get-zones 2>/dev/null | grep -qw "$ZONE_NAME" \
   || fail "Zone '$ZONE_NAME' does not exist"

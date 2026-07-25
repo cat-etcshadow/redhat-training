@@ -2,7 +2,7 @@
 set -euo pipefail
 errors=0
 
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 acls=$(getfacl /var/data/reports 2>/dev/null)
 defacls=$(getfacl /var/data/reports 2>/dev/null | grep '^default:')

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f "$ERROR_OUTPUT" ]] || fail "error output file $ERROR_OUTPUT does not exist"
 [[ -s "$ERROR_OUTPUT" ]] || fail "error output file $ERROR_OUTPUT is empty"

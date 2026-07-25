@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 pgrep -f rhtr-worker2.sh &>/dev/null || fail "rhtr-worker2.sh is not running"
 [[ -f "$LOG_FILE" ]] || fail "$LOG_FILE does not exist"

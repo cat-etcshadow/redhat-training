@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 rpm -q "$PKG_A" &>/dev/null \
   && fail "$PKG_A is still installed — the transaction was not undone"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 entry=$(awk -v mp="$MOUNT_POINT" '$2==mp' /etc/fstab)
 [[ -n "$entry" ]] || fail "no /etc/fstab entry for $MOUNT_POINT"

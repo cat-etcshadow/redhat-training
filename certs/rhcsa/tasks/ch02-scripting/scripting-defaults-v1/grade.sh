@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f "$SCRIPT_PATH" ]] || fail "$SCRIPT_PATH does not exist"
 [[ -x "$SCRIPT_PATH" ]] || fail "$SCRIPT_PATH is not executable"

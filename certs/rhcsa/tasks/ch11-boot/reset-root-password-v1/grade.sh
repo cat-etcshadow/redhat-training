@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 setup_epoch=$(cat /tmp/rhtr_setup_epoch 2>/dev/null || echo 0)
 shadow_mtime=$(stat -c '%Y' /etc/shadow)

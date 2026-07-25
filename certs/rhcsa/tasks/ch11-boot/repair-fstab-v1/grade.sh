@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 grep -q 'dead-beef-0000-0000-bad-fstab' /etc/fstab \
   && fail "Broken fstab entry (UUID=dead-beef-...) is still present"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 firewall-cmd --permanent --zone=public --list-ports 2>/dev/null | grep -q "${TCP_PORT}/tcp" \
   || fail "Port ${TCP_PORT}/tcp not permanently open in public zone"

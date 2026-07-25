@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f "$DEST_FILE" ]] \
   || fail "$DEST_FILE does not exist — copy /etc/hosts with archive mode (cp -a)"

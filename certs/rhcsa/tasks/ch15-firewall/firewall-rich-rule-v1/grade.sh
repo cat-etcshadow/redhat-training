@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 perm_services=$(firewall-cmd --permanent --zone=public --list-services 2>/dev/null)
 echo "$perm_services" | grep -qw 'ssh' \

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 vgs "$VG_NAME" &>/dev/null || fail "Volume group $VG_NAME does not exist"
 lvs "$VG_NAME/$LV_NAME" &>/dev/null || fail "Logical volume $LV_NAME does not exist in $VG_NAME"

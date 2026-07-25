@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 podman exec rhtr-execlogs cat "/tmp/${MARKER_FILE}" 2>/dev/null | grep -q "hello from exec" \
   || fail "/tmp/${MARKER_FILE} inside rhtr-execlogs does not contain the expected content"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 firewall-cmd --permanent --zone=public --list-services 2>/dev/null | grep -qw "$SVC_NAME" \
   && fail "$SVC_NAME is still permanently enabled in the public zone"

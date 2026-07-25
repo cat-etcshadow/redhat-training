@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 pgrep -f /usr/local/bin/rhtr_alpha &>/dev/null \
   && fail "rhtr_alpha is still running — use: pkill rhtr_alpha"

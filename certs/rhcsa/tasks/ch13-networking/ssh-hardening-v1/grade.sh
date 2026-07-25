@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 grep -qE '^PermitRootLogin[[:space:]]+no' /etc/ssh/sshd_config \
   || fail "sshd_config does not set PermitRootLogin no"

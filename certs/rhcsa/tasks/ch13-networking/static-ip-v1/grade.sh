@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f /root/rhtr-static-ip-target.txt ]] || fail "target file /root/rhtr-static-ip-target.txt missing"
 # shellcheck source=/dev/null

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 lvs "$VG_NAME/$LV_NAME" &>/dev/null || fail "$LV_NAME does not exist in $VG_NAME"
 

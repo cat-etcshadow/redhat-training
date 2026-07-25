@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f "$HARD_LINK" ]] || fail "hard link $HARD_LINK does not exist"
 [[ -L "$SOFT_LINK" ]] || fail "symbolic link $SOFT_LINK does not exist or is not a symlink"

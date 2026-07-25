@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 mountpoint -q /mnt/fixme || fail "/mnt/fixme is not mounted"
 grep '/mnt/fixme' /etc/fstab | grep -qE '^/dev/' \

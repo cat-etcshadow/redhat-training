@@ -2,7 +2,7 @@
 set -euo pipefail
 errors=0
 
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 s1=$(getent shadow "$USER1")
 u1_min=$(echo "$s1"  | cut -d: -f4)

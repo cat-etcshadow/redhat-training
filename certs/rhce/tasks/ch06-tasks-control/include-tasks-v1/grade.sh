@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f "$MAIN_PLAYBOOK" ]] || fail "main playbook not found at $MAIN_PLAYBOOK"
 [[ -f "$TASKS_FILE_INSTALL" ]] || fail "install tasks file not found at $TASKS_FILE_INSTALL"

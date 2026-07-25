@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f /etc/systemd/system/rhtr-brokensvc.service ]] \
   || fail "/etc/systemd/system/rhtr-brokensvc.service does not exist"

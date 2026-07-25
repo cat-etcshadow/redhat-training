@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 systemctl list-units --type=target --state=active --no-legend 2>/dev/null \
   | grep -q "multi-user.target" \

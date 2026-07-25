@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 grep -qE "^GRUB_TIMEOUT=${TIMEOUT_VAL}\$" /etc/default/grub \
   || fail "/etc/default/grub does not set GRUB_TIMEOUT=${TIMEOUT_VAL}"

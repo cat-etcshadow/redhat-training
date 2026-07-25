@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 getent group "$GROUP" | grep -q ":${GID}:" \
   || fail "group $GROUP with GID $GID not found"

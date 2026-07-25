@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 id "$LOCK_USER"   &>/dev/null || fail "$LOCK_USER does not exist"
 id "$UNLOCK_USER" &>/dev/null || fail "$UNLOCK_USER does not exist"

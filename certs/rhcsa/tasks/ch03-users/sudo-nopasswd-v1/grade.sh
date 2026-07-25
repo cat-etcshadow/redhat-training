@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 ls /etc/sudoers.d/ | grep -qi "$SUDO_USER" \
   || fail "no sudoers drop-in file for $SUDO_USER found in /etc/sudoers.d/"

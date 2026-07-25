@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f "$PLAYBOOK_FILE" ]]   || fail "playbook $PLAYBOOK_FILE does not exist"
 [[ -f "$USER_VARS_FILE" ]]  || fail "user vars file $USER_VARS_FILE does not exist"

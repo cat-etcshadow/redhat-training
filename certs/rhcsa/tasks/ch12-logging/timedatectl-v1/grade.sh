@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 tz=$(timedatectl show -p Timezone --value 2>/dev/null)
 [[ "$tz" == "$TIMEZONE" ]] \

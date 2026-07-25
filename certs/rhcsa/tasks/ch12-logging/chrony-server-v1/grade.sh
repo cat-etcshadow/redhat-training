@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 systemctl is-enabled chronyd &>/dev/null || fail "chronyd is not enabled"
 systemctl is-active  chronyd &>/dev/null || fail "chronyd is not running"

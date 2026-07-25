@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 config="/etc/logrotate.d/${APP_NAME}"
 [[ -f "$config" ]] || fail "$config does not exist"

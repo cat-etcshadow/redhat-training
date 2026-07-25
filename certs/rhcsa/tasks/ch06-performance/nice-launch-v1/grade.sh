@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 mapfile -t pids < <(pgrep -u "$TARGET_USER" -f rhtr-user-job)
 [[ ${#pids[@]} -ge 2 ]] \

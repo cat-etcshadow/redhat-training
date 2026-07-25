@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 repo_file=$(grep -rl '^\[extras\]' /etc/yum.repos.d/ 2>/dev/null | head -1)
 [[ -n "$repo_file" ]] || fail "No repo file found containing [extras]"

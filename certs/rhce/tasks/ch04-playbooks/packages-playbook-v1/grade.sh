@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 as_student() { su - student -c "$1"; }
 
 [[ -f "$PLAYBOOK_FILE" ]] || { fail "playbook $PLAYBOOK_FILE does not exist"; exit 1; }

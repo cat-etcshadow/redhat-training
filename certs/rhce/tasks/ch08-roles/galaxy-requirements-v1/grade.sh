@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f "$REQUIREMENTS_FILE" ]] \
   || fail "requirements.yml not found at $REQUIREMENTS_FILE"

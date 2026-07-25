@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 if pgrep -f rhtr-hog.sh >/dev/null 2>&1; then
   fail "rhtr-hog.sh (or an equivalent runaway process) is still running"

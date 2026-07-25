@@ -2,7 +2,7 @@
 set -euo pipefail
 errors=0
 
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 # Group webteam exists
 getent group webteam &>/dev/null || fail "group webteam does not exist"

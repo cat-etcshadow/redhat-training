@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 # no world-writable entries should remain
 world_writable=$(find "$TARGET_DIR" -perm /o+w 2>/dev/null)

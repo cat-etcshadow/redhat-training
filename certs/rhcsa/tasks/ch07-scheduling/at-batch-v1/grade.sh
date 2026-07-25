@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 systemctl is-active atd &>/dev/null || fail "atd is not running"
 systemctl is-enabled atd &>/dev/null || fail "atd is not enabled"

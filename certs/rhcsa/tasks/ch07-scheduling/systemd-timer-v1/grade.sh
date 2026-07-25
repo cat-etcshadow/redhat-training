@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -f /etc/systemd/system/cleanup.service ]] || fail "cleanup.service does not exist"
 [[ -f /etc/systemd/system/cleanup.timer   ]] || fail "cleanup.timer does not exist"

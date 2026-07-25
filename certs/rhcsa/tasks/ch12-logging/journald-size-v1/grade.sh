@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 grep -q '^Storage=persistent' /etc/systemd/journald.conf \
   || fail "/etc/systemd/journald.conf does not have 'Storage=persistent'"

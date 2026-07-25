@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 podman network exists "$NET_NAME" &>/dev/null \
   || fail "podman network '$NET_NAME' does not exist"

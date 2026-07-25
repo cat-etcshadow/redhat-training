@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 podman ps --format '{{.Names}}' 2>/dev/null | grep -qw "$CONTAINER_NAME" \
   || fail "Container '$CONTAINER_NAME' is not running"

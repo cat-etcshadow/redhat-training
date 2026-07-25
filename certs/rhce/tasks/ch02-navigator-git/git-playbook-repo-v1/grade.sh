@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -d "$CLONE_DIR/.git" ]] || fail "$CLONE_DIR is not a git clone"
 [[ -f "$CLONE_DIR/$NEW_FILE" ]] || fail "$NEW_FILE not found in $CLONE_DIR"

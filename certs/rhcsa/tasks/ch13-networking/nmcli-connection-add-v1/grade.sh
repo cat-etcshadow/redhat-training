@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 nmcli -t -f NAME connection show 2>/dev/null | grep -qx "$CON_NAME" \
   || fail "connection '$CON_NAME' does not exist"

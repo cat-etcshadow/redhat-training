@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 semanage port -l 2>/dev/null | grep -q "http_port_t.*tcp.*\b${HTTP_PORT}\b" \
   || fail "Port $HTTP_PORT/tcp is not assigned to SELinux http_port_t"

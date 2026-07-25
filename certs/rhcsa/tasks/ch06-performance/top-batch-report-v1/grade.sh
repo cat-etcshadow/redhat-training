@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 pgrep -f rhtr_cpu_hog &>/dev/null || fail "rhtr_cpu_hog process is no longer running"
 

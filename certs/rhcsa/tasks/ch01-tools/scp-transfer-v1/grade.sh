@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 SCP_FILE="${SCP_DEST}/payload.tar.gz"
 [[ -f "$SCP_FILE" ]] || fail "scp destination $SCP_FILE does not exist"

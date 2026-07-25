@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 firewall-cmd --permanent --zone="$ZONE" --query-masquerade &>/dev/null \
   || fail "masquerade is not permanently enabled on zone $ZONE"

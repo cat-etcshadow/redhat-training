@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 errors=0
-fail() { echo "FAIL: $*"; (( errors++ )); }
+fail() { echo "FAIL: $*"; errors=$((errors+1)); }
 
 [[ -d "$ROLES_DIR/$ROLE_NAME" ]] \
   || fail "role directory not found at $ROLES_DIR/$ROLE_NAME"
