@@ -4,3 +4,4 @@ CHAPTER=2
 TITLE="Clone a playbook repository and commit a new file"
 DIFFICULTY="easy"
 RHEL_VERSIONS="9"
+NEEDS_NODES=()

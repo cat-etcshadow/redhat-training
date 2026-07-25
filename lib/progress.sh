@@ -57,7 +57,7 @@ cmd_progress() {
     esac
   done
 
-  local search_root="$RHTR_DIR/certs/$cert/tasks"
+  local search_root; search_root=$(pool_dir "$cert" training)
   if [[ -n "$filter_topic" ]]; then
     local resolved
     resolved=$(_resolve_chapter_dir "$cert" "$filter_topic") \

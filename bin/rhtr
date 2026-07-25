@@ -30,8 +30,8 @@ usage() {
     rhtr <cert> <command> [options]
 
   Session commands:
-    new       [--profile <name>] [--fixed <name>] [--topic <ch>] [--rhel <8|9|10>] [--nodes <1-5>]
-    train     [--topic <ch>] [--difficulty easy|medium|hard] [--rhel <8|9|10>] [--nodes <1-5>]
+    new       [--profile <name>] [--fixed <name>] [--topic <ch>] [--rhel <8|9|10>] [--format training|exam]
+    train     [--topic <ch>] [--difficulty easy|medium|hard] [--rhel <8|9|10>] [--format training|exam]
     shell     [--node <name>]
     console   [--node <name>]   (raw serial console — for GRUB/rd.break/rescue mode)
     grade     [--task <task-number>]   (omit --task to grade the whole session)
@@ -47,11 +47,16 @@ usage() {
   Discovery commands (no VM required):
     list-topics
     list-tasks    [--topic <ch>] [--difficulty <level>] [--rhel <version>]
-    list-profiles
-    list-fixed
-    show          <chapter/task-variant>
+    list-profiles [--format training|exam]
+    list-fixed    [--format training|exam]
+    show          <chapter/task-variant> [--format training|exam]
     progress      [--topic <ch>]
-    lint          [<chapter/task-variant>] [--topic <ch>]
+    lint          [<chapter/task-variant>] [--topic <ch>] [--format training|exam]
+
+  --format training|exam (default: training) selects which task pool a session/discovery
+  command uses. "training" is certs/<cert>/tasks/ (learning-oriented, module-name grading
+  for RHCE). "exam" is certs/<cert>/tasks-exam/ (outcome-only, live-state grading) —
+  currently populated for RHCE only; errors cleanly if the current cert has no pool yet.
 
 EOF
 }
@@ -102,8 +107,8 @@ case "$CMD" in
   # Discovery
   list-topics)   cmd_list_topics ;;
   list-tasks)    cmd_list_tasks "$@" ;;
-  list-profiles) cmd_list_profiles ;;
-  list-fixed)    cmd_list_fixed ;;
+  list-profiles) cmd_list_profiles "$@" ;;
+  list-fixed)    cmd_list_fixed "$@" ;;
   show)          cmd_show_task "$@" ;;
   progress)      cmd_progress "$@" ;;
   lint)          cmd_lint "$@" ;;

@@ -132,7 +132,7 @@ PY
     done <<< "$agg"
   fi
 
-  local tasks_dir="$RHTR_DIR/certs/$CERT/tasks"
+  local tasks_dir; tasks_dir=$(pool_dir "$CERT" training)
   local topics=()
   while IFS= read -r chapter_dir; do
     topics+=("$(basename "$chapter_dir")")

@@ -4,3 +4,4 @@ CHAPTER=1
 TITLE="Configure privilege escalation with become_user"
 DIFFICULTY="medium"
 RHEL_VERSIONS="9"
+NEEDS_NODES=(node1 node2)

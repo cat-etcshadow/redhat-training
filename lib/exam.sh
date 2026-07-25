@@ -9,7 +9,7 @@ cmd_new() {
   local fixed_name=""
   local topic_override=""
   RHEL_VERSION="${DEFAULT_RHEL_VERSION:-9}"
-  NODE_COUNT=""
+  FORMAT="training"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -17,10 +17,15 @@ cmd_new() {
       --fixed)   fixed_name="$2";   shift 2 ;;
       --topic)   topic_override="$2"; shift 2 ;;
       --rhel)    RHEL_VERSION="$2";  shift 2 ;;
-      --nodes)   NODE_COUNT="$2";   shift 2 ;;
+      --format)  FORMAT="$2";       shift 2 ;;
       *) die "Unknown flag: $1" ;;
     esac
   done
+
+  [[ "$FORMAT" == "training" || "$FORMAT" == "exam" ]] \
+    || die "Unknown --format '$FORMAT' (must be training or exam)"
+  pool_dir_exists "$CERT" "$FORMAT" \
+    || die "Cert '$CERT' has no '$FORMAT' pool ($(pool_dir "$CERT" "$FORMAT") not found) — --format $FORMAT isn't available for $CERT yet."
 
   _load_selection_source "$profile_name" "$fixed_name" "$topic_override"
 
@@ -32,11 +37,6 @@ cmd_new() {
   [[ ${#selected_tasks[@]} -gt 0 ]] \
     || die "No compatible tasks found for RHEL $RHEL_VERSION. Try adding tasks or changing --rhel."
 
-  _filter_tasks_by_node_count selected_tasks
-
-  [[ ${#selected_tasks[@]} -gt 0 ]] \
-    || die "--nodes $NODE_COUNT excludes every task in this selection. Raise --nodes or pick a different --profile/--fixed/--topic."
-
   _start_session "exam" "${selected_tasks[@]}"
 }
 
@@ -47,17 +47,24 @@ cmd_train() {
   local topic_override=""
   local filter_diff=""
   RHEL_VERSION="${DEFAULT_RHEL_VERSION:-9}"
-  NODE_COUNT=""
+  FORMAT="training"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --topic)      topic_override="$2"; shift 2 ;;
       --difficulty) filter_diff="$2";    shift 2 ;;
       --rhel)       RHEL_VERSION="$2";   shift 2 ;;
-      --nodes)      NODE_COUNT="$2";     shift 2 ;;
+      --format)     FORMAT="$2";        shift 2 ;;
       *) die "Unknown flag: $1" ;;
     esac
   done
+
+  [[ "$FORMAT" == "training" || "$FORMAT" == "exam" ]] \
+    || die "Unknown --format '$FORMAT' (must be training or exam)"
+  pool_dir_exists "$CERT" "$FORMAT" \
+    || die "Cert '$CERT' has no '$FORMAT' pool ($(pool_dir "$CERT" "$FORMAT") not found) — --format $FORMAT isn't available for $CERT yet."
+  [[ "$FORMAT" == "exam" && -n "$topic_override" ]] \
+    && die "--topic isn't supported with --format exam (the exam-format pool is flat, not chapter-nested)"
 
   # Train mode: always uses topic-all or full catalog; no profiles/fixed
   TOPIC_OVERRIDE="${topic_override:-}"
@@ -67,7 +74,7 @@ cmd_train() {
   if [[ -n "$topic_override" ]]; then
     NAME="Train: $topic_override"
   else
-    NAME="Train: $CERT (all topics)"
+    NAME="Train: $CERT (all topics)${FORMAT:+ [$FORMAT]}"
   fi
   DURATION=0   # no timer in train mode
   PASS_THRESHOLD="${PASS_THRESHOLD:-70}"
@@ -77,10 +84,14 @@ cmd_train() {
     if [[ -n "$topic_override" ]]; then
       _select_topic_all "$topic_override"
     else
-      # All tasks across all chapters, filtered by RHEL version
+      # All tasks across the pool, filtered by RHEL version. Training pools
+      # are chapter-nested (depth 2); the flat exam-format pool is depth 1.
+      local pool; pool=$(pool_dir "$CERT" "$FORMAT")
+      local depth=2
+      [[ "$FORMAT" == "exam" ]] && depth=1
       while IFS= read -r d; do
         _task_compatible "$d" && echo "$d"
-      done < <(find "$RHTR_DIR/certs/$CERT/tasks" -mindepth 2 -maxdepth 2 -type d | sort)
+      done < <(find "$pool" -mindepth "$depth" -maxdepth "$depth" -type d | sort)
     fi
   )
 
@@ -97,59 +108,7 @@ cmd_train() {
 
   [[ ${#selected_tasks[@]} -gt 0 ]] || die "No tasks match the given filters."
 
-  _filter_tasks_by_node_count selected_tasks
-
-  [[ ${#selected_tasks[@]} -gt 0 ]] \
-    || die "--nodes $NODE_COUNT excludes every task in this selection. Raise --nodes or pick a different --topic/--difficulty."
-
   _start_session "train" "${selected_tasks[@]}"
-}
-
-# ── node-count filtering ────────────────────────────────────────────────────
-# --nodes only trims the VM footprint (see certs/rhce/topology.sh); on its
-# own that leaves task selection unaware of it, so a profile/topic/fixed set
-# that references more nodes than were built can never pass grading — node4/5
-# just don't exist, and the failure looks like a content bug instead of a
-# node-count mismatch. (Incident: --nodes 2 combined with the full RHCE task
-# set burned an entire exam-mode timer before the real cause was found.)
-#
-# Rather than rejecting the whole session, drop the tasks that don't fit and
-# report what got excluded — --nodes 3 against the "full" profile should just
-# run the subset of full-profile tasks that work with 3 nodes.
-_task_required_nodes() {
-  local task_dir="$1"
-  # tasks with zero node references are legitimate (e.g. git/vault-only
-  # tasks) and make the grep chain exit non-zero; under the script's global
-  # set -e that would otherwise abort the whole command, so force success.
-  grep -hoE "node[1-5]" "$task_dir"/*.sh 2>/dev/null | grep -oE "[1-5]" | sort -rn | head -1
-  return 0
-}
-
-# Filters the named array variable in place against $NODE_COUNT, warning
-# about anything dropped. No-op when --nodes wasn't passed.
-_filter_tasks_by_node_count() {
-  local -n _tasks_ref="$1"
-  [[ -n "${NODE_COUNT:-}" ]] || return 0
-
-  local kept=() dropped=() task_dir needed
-  for task_dir in "${_tasks_ref[@]}"; do
-    needed=$(_task_required_nodes "$task_dir")
-    if [[ -n "$needed" && "$needed" -gt "$NODE_COUNT" ]]; then
-      dropped+=("$(task_short_name "$task_dir") (needs node$needed)")
-    else
-      kept+=("$task_dir")
-    fi
-  done
-
-  if [[ ${#dropped[@]} -gt 0 ]]; then
-    warn "--nodes $NODE_COUNT excludes ${#dropped[@]} task(s) that reference nodes beyond that count:"
-    local d
-    for d in "${dropped[@]}"; do
-      warn "  - $d"
-    done
-  fi
-
-  _tasks_ref=("${kept[@]}")
 }
 
 # ── shared session start ──────────────────────────────────────────────────────
@@ -182,6 +141,7 @@ _start_session() {
 
   _assign_task_disks
   _assign_task_requirements
+  _assign_task_nodes
 
   DEADLINE_EPOCH=0
   if [[ $DURATION -gt 0 ]]; then
@@ -192,8 +152,9 @@ _start_session() {
 CERT="$CERT"
 NAME="$NAME"
 MODE="$mode"
+FORMAT="${FORMAT:-training}"
 RHEL_VERSION="$RHEL_VERSION"
-NODE_COUNT="${NODE_COUNT:-}"
+SESSION_NODES="$SESSION_NODES"
 DURATION=$DURATION
 PASS_THRESHOLD=${PASS_THRESHOLD:-70}
 DEADLINE_EPOCH=$DEADLINE_EPOCH
@@ -611,6 +572,38 @@ _assign_task_disks() {
   done < "$STATE_DIR/active-tasks.txt"
 }
 
+# Scan the selected tasks for a declared NEEDS_NODES=(node3 node4) — mirrors
+# _assign_task_disks exactly, but for RHCE's managed-node topology instead of
+# RHCSA's extra disks. A task that doesn't declare NEEDS_NODES gets the full
+# 5-node set (safe default, same soft-default convention as NEEDS_DISK/
+# NEEDS_CONTAINERS being unset = off) so existing tasks that assume all 5
+# nodes exist keep working unchanged. The unioned result is persisted into
+# exam.conf as SESSION_NODES so certs/rhce/topology.sh's topology_names() can
+# read it back on every later command (shell/grade/reset/destroy), not just
+# at session start — see topology_names() for why that matters.
+_assign_task_nodes() {
+  local -A _node_set=()
+  local _nt
+  while IFS= read -r _nt; do
+    [[ -z "$_nt" ]] && continue
+    local NEEDS_NODES=()
+    # shellcheck source=/dev/null
+    source "$_nt/meta.sh"
+    if [[ ${#NEEDS_NODES[@]} -eq 0 ]]; then
+      NEEDS_NODES=(node1 node2 node3 node4 node5)
+    fi
+    local n
+    for n in "${NEEDS_NODES[@]}"; do _node_set["$n"]=1; done
+  done < "$STATE_DIR/active-tasks.txt"
+
+  SESSION_NODES=""
+  local i
+  for (( i=1; i<=5; i++ )); do
+    [[ -n "${_node_set[node$i]:-}" ]] && SESSION_NODES+="node$i "
+  done
+  SESSION_NODES="${SESSION_NODES% }"
+}
+
 # Scan the selected tasks for NEEDS_CONTAINERS=1 (set by ch16-containers'
 # meta.sh files). topology_create reads the resulting SESSION_NEEDS_CONTAINERS
 # global to decide whether to install podman and stand up the offline
@@ -719,16 +712,18 @@ _load_selection_source() {
     TOPIC_OVERRIDE="$topic_override"
 
   elif [[ -n "$fixed_name" ]]; then
-    local fixed_file="$RHTR_DIR/certs/$CERT/exams/fixed/$fixed_name.conf"
-    [[ -f "$fixed_file" ]] || die "Fixed exam not found: $fixed_name"
+    local fixed_subdir="fixed"; [[ "${FORMAT:-training}" == "exam" ]] && fixed_subdir="fixed-exam"
+    local fixed_file="$RHTR_DIR/certs/$CERT/exams/$fixed_subdir/$fixed_name.conf"
+    [[ -f "$fixed_file" ]] || die "Fixed exam not found: $fixed_name (looked in exams/$fixed_subdir/)"
     source "$fixed_file"
     NAME="${NAME:-$CERT_FULL_NAME — $fixed_name}"
     DURATION="${DURATION:-${DEFAULT_DURATION:-150}}"
     PASS_THRESHOLD="${PASS_THRESHOLD:-70}"
 
   else
-    local profile_file="$RHTR_DIR/certs/$CERT/exams/profiles/$profile_name.conf"
-    [[ -f "$profile_file" ]] || die "Profile not found: $profile_name"
+    local profiles_subdir="profiles"; [[ "${FORMAT:-training}" == "exam" ]] && profiles_subdir="profiles-exam"
+    local profile_file="$RHTR_DIR/certs/$CERT/exams/$profiles_subdir/$profile_name.conf"
+    [[ -f "$profile_file" ]] || die "Profile not found: $profile_name (looked in exams/$profiles_subdir/)"
     source "$profile_file"
     NAME="${NAME:-$CERT_FULL_NAME — $profile_name}"
     DURATION="${DURATION:-${DEFAULT_DURATION:-150}}"

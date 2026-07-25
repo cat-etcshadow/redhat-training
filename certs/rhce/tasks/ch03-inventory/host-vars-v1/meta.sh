@@ -4,3 +4,4 @@ CHAPTER=3
 TITLE="Create host_vars directory with per-host variables"
 DIFFICULTY="easy"
 RHEL_VERSIONS="9"
+NEEDS_NODES=(node1 node2)

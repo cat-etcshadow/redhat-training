@@ -4,3 +4,4 @@ CHAPTER=2
 TITLE="Run a playbook inside an Execution Environment container"
 DIFFICULTY="hard"
 RHEL_VERSIONS="9"
+NEEDS_NODES=()

@@ -49,7 +49,7 @@ _lint_emit_result() {
 # ── per-task checks ───────────────────────────────────────────────────────────
 
 _lint_check_meta() {
-  local task_dir="$1" meta="$task_dir/meta.sh"
+  local task_dir="$1" format="${2:-training}" meta="$task_dir/meta.sh"
   [[ -f "$meta" ]] || { _lint_add ERROR "meta.sh missing"; return; }
 
   local synerr
@@ -58,8 +58,8 @@ _lint_check_meta() {
     return
   fi
 
-  local POINTS="" TOPIC="" CHAPTER="" TITLE="" DIFFICULTY="" RHEL_VERSIONS="" \
-        NEEDS_DISK="" NEEDS_CONTAINERS="" CONFLICTS=()
+  local POINTS="" TOPIC="" TOPICS=() CHAPTER="" TITLE="" DIFFICULTY="" RHEL_VERSIONS="" \
+        NEEDS_DISK="" NEEDS_CONTAINERS="" NEEDS_NODES=() CONFLICTS=()
   source "$meta" 2>/dev/null || { _lint_add ERROR "meta.sh failed to source"; return; }
 
   [[ "$POINTS" =~ ^[0-9]+$ && "$POINTS" -gt 0 ]] \
@@ -72,21 +72,28 @@ _lint_check_meta() {
     *) _lint_add ERROR "DIFFICULTY must be easy|medium|hard (got '${DIFFICULTY:-}')" ;;
   esac
 
-  [[ -n "$TOPIC" ]] || _lint_add WARN "TOPIC is empty"
+  if [[ "$format" == "exam" ]]; then
+    # Flat pool: no chNN-topic nesting to cross-check CHAPTER/TOPIC against —
+    # TOPICS is a plural array of every chapter/topic the scenario spans.
+    [[ ${#TOPICS[@]} -gt 0 ]] \
+      || _lint_add ERROR "TOPICS is empty (exam-format meta.sh needs an array of every chapter/topic this scenario touches)"
+  else
+    [[ -n "$TOPIC" ]] || _lint_add WARN "TOPIC is empty"
 
-  local chapter_dir_name; chapter_dir_name=$(basename "$(dirname "$task_dir")")
-  local dir_chapter_num="${chapter_dir_name#ch}"; dir_chapter_num="${dir_chapter_num%%-*}"
-  local dir_topic="${chapter_dir_name#ch*-}"
+    local chapter_dir_name; chapter_dir_name=$(basename "$(dirname "$task_dir")")
+    local dir_chapter_num="${chapter_dir_name#ch}"; dir_chapter_num="${dir_chapter_num%%-*}"
+    local dir_topic="${chapter_dir_name#ch*-}"
 
-  if [[ "$dir_chapter_num" =~ ^[0-9]+$ ]]; then
-    local dir_chapter_num_norm=$((10#$dir_chapter_num))
-    if [[ -n "$CHAPTER" && "$CHAPTER" != "$dir_chapter_num_norm" ]]; then
-      _lint_add ERROR "CHAPTER=$CHAPTER does not match directory $chapter_dir_name (expected $dir_chapter_num_norm)"
+    if [[ "$dir_chapter_num" =~ ^[0-9]+$ ]]; then
+      local dir_chapter_num_norm=$((10#$dir_chapter_num))
+      if [[ -n "$CHAPTER" && "$CHAPTER" != "$dir_chapter_num_norm" ]]; then
+        _lint_add ERROR "CHAPTER=$CHAPTER does not match directory $chapter_dir_name (expected $dir_chapter_num_norm)"
+      fi
     fi
-  fi
 
-  if [[ -n "$TOPIC" && -n "$dir_topic" && "$TOPIC" != "$dir_topic" ]]; then
-    _lint_add WARN "TOPIC='$TOPIC' does not match directory topic '$dir_topic' (profiles resolve chapters by directory name, not TOPIC)"
+    if [[ -n "$TOPIC" && -n "$dir_topic" && "$TOPIC" != "$dir_topic" ]]; then
+      _lint_add WARN "TOPIC='$TOPIC' does not match directory topic '$dir_topic' (profiles resolve chapters by directory name, not TOPIC)"
+    fi
   fi
 
   if [[ -n "$RHEL_VERSIONS" ]]; then
@@ -102,15 +109,27 @@ _lint_check_meta() {
   [[ -z "${NEEDS_CONTAINERS:-}" || "$NEEDS_CONTAINERS" == "0" || "$NEEDS_CONTAINERS" == "1" ]] \
     || _lint_add ERROR "NEEDS_CONTAINERS must be 0 or 1 (got '$NEEDS_CONTAINERS')"
 
+  if [[ ${#NEEDS_NODES[@]} -gt 0 ]]; then
+    if [[ -z "${_LINT_CERT_MANAGED_NODES:-}" ]]; then
+      _lint_add ERROR "NEEDS_NODES set but this cert has no MANAGED_NODES declared in cert.conf"
+    else
+      local n
+      for n in "${NEEDS_NODES[@]}"; do
+        [[ " $_LINT_CERT_MANAGED_NODES " == *" $n "* ]] \
+          || _lint_add ERROR "NEEDS_NODES contains '$n', not one of this cert's managed nodes ($_LINT_CERT_MANAGED_NODES)"
+      done
+    fi
+  fi
+
   local this_name; this_name=$(task_short_name "$task_dir")
-  local rel abs
+  local rel abs pool; pool=$(pool_dir "$CERT" "$format")
   for rel in "${CONFLICTS[@]:-}"; do
     [[ -z "$rel" ]] && continue
     if [[ "$rel" == "$this_name" ]]; then
       _lint_add ERROR "CONFLICTS lists itself ('$rel')"
       continue
     fi
-    abs="$RHTR_DIR/certs/$CERT/tasks/$rel"
+    abs="$pool/$rel"
     [[ -d "$abs" ]] || _lint_add ERROR "CONFLICTS references unknown task: $rel"
   done
 
@@ -228,15 +247,58 @@ _lint_check_requirements() {
   return 0
 }
 
-_lint_one_task() {
+# tasks-exam/ gives no hints (the real exam doesn't either) — net-new rule,
+# hint.md was never checked/required/forbidden anywhere before this.
+_lint_check_no_hint() {
   local task_dir="$1"
+  [[ -f "$task_dir/hint.md" ]] \
+    && _lint_add ERROR "hint.md present — the exam-format pool gives no hints"
+  return 0
+}
+
+# Enforce "outcome/state only, never names a module/collection/construct"
+# for the exam-format pool (TODO.md Phase 12a). FQCN matches are near-zero
+# false-positive (a collection.module string can't appear in ordinary prose
+# by accident) so they're a hard ERROR; bare module-ish words are looser and
+# only WARN, since legitimate outcome-only prose can still contain them (e.g.
+# "the service should be running").
+_lint_check_no_module_naming() {
+  local task_dir="$1" task_md="$task_dir/task.md"
+  [[ -f "$task_md" ]] || return 0
+
+  local fqcn
+  fqcn=$(grep -oE '\b(community\.general|ansible\.posix|ansible\.builtin)\.[A-Za-z_]+' \
+    "$task_md" 2>/dev/null | sort -u || true)
+  if [[ -n "$fqcn" ]]; then
+    local m
+    while IFS= read -r m; do
+      _lint_add ERROR "task.md names a fully-qualified module/collection: $m (exam-format tasks must state outcome only)"
+    done <<< "$fqcn"
+  fi
+
+  local bare
+  bare=$(grep -iohE '\b(firewalld|seboolean|sefcontext|nmcli|lineinfile|template|handlers?|tags?|registered?|loop|block|rescue|lvol|parted|authorized_key|cron module|copy module|command module)\b' \
+    "$task_md" 2>/dev/null | tr 'A-Z' 'a-z' | sort -u | tr '\n' ' ' || true)
+  [[ -n "$bare" ]] \
+    && _lint_add WARN "task.md mentions module-ish word(s) — double-check this states an outcome, not a mechanism: $bare"
+
+  return 0
+}
+
+_lint_one_task() {
+  local task_dir="$1" format="${2:-training}"
   _LINT_FINDINGS=()
 
-  _lint_check_meta "$task_dir"
+  _lint_check_meta "$task_dir" "$format"
   _lint_check_syntax "$task_dir"
   _lint_check_shellcheck "$task_dir"
   _lint_check_placeholders "$task_dir"
   _lint_check_requirements "$task_dir"
+
+  if [[ "$format" == "exam" ]]; then
+    _lint_check_no_hint "$task_dir"
+    _lint_check_no_module_naming "$task_dir"
+  fi
 
   (( _LINT_TASKS_CHECKED++ )) || true
   _lint_emit_result "$(task_short_name "$task_dir")"
@@ -249,7 +311,7 @@ _lint_one_task() {
 # see the comment there) — so this is promoted to a hard error instead of the
 # WARN a cross-chapter pair gets in _lint_one_profile below.
 _lint_chapter_conflicts() {
-  local base="$RHTR_DIR/certs/$CERT/tasks"
+  local base; base=$(pool_dir "$CERT" training)
   [[ -d "$base" ]] || return 0
   echo ""
   echo -e "${C_BOLD}Same-chapter conflicts${C_RESET}"
@@ -275,6 +337,33 @@ _lint_chapter_conflicts() {
 
     _lint_emit_result "chapter/$chapter_name"
   done
+}
+
+# All-pairs CONFLICTS check across the flat exam-format pool — there's no
+# chapter grouping to scope it by the way _lint_chapter_conflicts does above,
+# but the pool is small (~15-20 curated scenarios) so an all-pairs check is
+# cheap.
+_lint_scenario_conflicts() {
+  local base; base=$(pool_dir "$CERT" exam)
+  [[ -d "$base" ]] || return 0
+  echo ""
+  echo -e "${C_BOLD}Scenario conflicts (exam-format pool)${C_RESET}"
+  _LINT_FINDINGS=()
+
+  local tasks=()
+  mapfile -t tasks < <(find "$base" -mindepth 1 -maxdepth 1 -type d | sort)
+
+  if [[ ${#tasks[@]} -ge 2 ]]; then
+    local i j
+    for (( i=0; i<${#tasks[@]}; i++ )); do
+      for (( j=i+1; j<${#tasks[@]}; j++ )); do
+        _task_conflicts_pair "${tasks[$i]}" "${tasks[$j]}" \
+          && _lint_add ERROR "$(task_short_name "${tasks[$i]}") conflicts with $(task_short_name "${tasks[$j]}") — both may be drawn together from the flat pool"
+      done
+    done
+  fi
+
+  _lint_emit_result "tasks-exam pool"
 }
 
 # ── profile checks ────────────────────────────────────────────────────────────
@@ -386,7 +475,7 @@ _lint_one_fixed() {
 
   local rel abs seen=() s dup
   for rel in "${FIXED_TASKS[@]}"; do
-    abs="$RHTR_DIR/certs/$CERT/tasks/$rel"
+    abs="$(pool_dir "$CERT" training)/$rel"
     if [[ ! -d "$abs" ]]; then
       _lint_add ERROR "task not found: $rel"
     elif [[ ! -f "$abs/meta.sh" ]]; then
@@ -404,7 +493,7 @@ _lint_one_fixed() {
   # pair is a hard error, same as the same-chapter check above.
   local abs_tasks=()
   for rel in "${FIXED_TASKS[@]}"; do
-    abs="$RHTR_DIR/certs/$CERT/tasks/$rel"
+    abs="$(pool_dir "$CERT" training)/$rel"
     [[ -d "$abs" ]] && abs_tasks+=("$abs")
   done
   local i j
@@ -430,6 +519,119 @@ _lint_fixed_lists() {
   done
 }
 
+# ── exam-format profile / fixed-list checks ───────────────────────────────────
+# Parallel to _lint_one_profile/_lint_one_fixed above, but the schema differs
+# (SCENARIO_COUNT "pick N of the flat pool" instead of TOPICS "chapter:count",
+# SCENARIOS instead of FIXED_TASKS) and resolves against tasks-exam/ instead
+# of tasks/.
+
+_lint_one_profile_exam() {
+  local f="$1" name; name=$(basename "$f" .conf)
+  _LINT_FINDINGS=()
+
+  local synerr
+  if ! synerr=$(bash -n "$f" 2>&1); then
+    _lint_add ERROR "syntax error — $synerr"
+    _lint_emit_result "profile-exam/$name"
+    return
+  fi
+
+  local NAME="" DURATION="" PASS_THRESHOLD="" SCENARIO_COUNT=""
+  source "$f" 2>/dev/null || { _lint_add ERROR "failed to source"; _lint_emit_result "profile-exam/$name"; return; }
+
+  [[ -n "$NAME" ]] || _lint_add WARN "NAME is empty"
+  [[ "$DURATION" =~ ^[0-9]+$ ]] || _lint_add ERROR "DURATION missing or not numeric"
+  [[ -z "$PASS_THRESHOLD" || "$PASS_THRESHOLD" =~ ^[0-9]+$ ]] \
+    || _lint_add WARN "PASS_THRESHOLD is not numeric"
+  [[ "$SCENARIO_COUNT" =~ ^[0-9]+$ && "$SCENARIO_COUNT" -gt 0 ]] \
+    || _lint_add ERROR "SCENARIO_COUNT must be a positive integer (got '${SCENARIO_COUNT:-}')"
+
+  local pool; pool=$(pool_dir "$CERT" exam)
+  local _rv
+  for _rv in $_LINT_CERT_RHEL_VERSIONS; do
+    local RHEL_VERSION="$_rv" d avail=0
+    while IFS= read -r d; do
+      _task_compatible "$d" && (( avail++ )) || true
+    done < <(find "$pool" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+    [[ "$SCENARIO_COUNT" =~ ^[0-9]+$ ]] && (( avail < SCENARIO_COUNT )) \
+      && _lint_add WARN "SCENARIO_COUNT=$SCENARIO_COUNT but only $avail compatible scenario(s) exist for RHEL $_rv"
+  done
+
+  _lint_emit_result "profile-exam/$name"
+}
+
+_lint_profiles_exam() {
+  local dir="$RHTR_DIR/certs/$CERT/exams/profiles-exam"
+  [[ -d "$dir" ]] || return 0
+  echo ""
+  echo -e "${C_BOLD}Profiles (exam-format)${C_RESET}"
+  local f
+  for f in "$dir"/*.conf; do
+    [[ -f "$f" ]] || continue
+    _lint_one_profile_exam "$f"
+  done
+}
+
+_lint_one_fixed_exam() {
+  local f="$1" name; name=$(basename "$f" .conf)
+  _LINT_FINDINGS=()
+
+  local synerr
+  if ! synerr=$(bash -n "$f" 2>&1); then
+    _lint_add ERROR "syntax error — $synerr"
+    _lint_emit_result "fixed-exam/$name"
+    return
+  fi
+
+  local NAME="" SCENARIOS=()
+  source "$f" 2>/dev/null || { _lint_add ERROR "failed to source"; _lint_emit_result "fixed-exam/$name"; return; }
+
+  [[ -n "$NAME" ]] || _lint_add WARN "NAME is empty"
+  [[ ${#SCENARIOS[@]} -gt 0 ]] || _lint_add ERROR "SCENARIOS is empty"
+
+  local pool; pool=$(pool_dir "$CERT" exam)
+  local rel abs seen=() s dup
+  for rel in "${SCENARIOS[@]}"; do
+    abs="$pool/$rel"
+    if [[ ! -d "$abs" ]]; then
+      _lint_add ERROR "scenario not found: $rel"
+    elif [[ ! -f "$abs/meta.sh" ]]; then
+      _lint_add ERROR "$rel: meta.sh missing"
+    fi
+    dup=0
+    for s in "${seen[@]}"; do [[ "$s" == "$rel" ]] && dup=1; done
+    [[ $dup -eq 1 ]] && _lint_add WARN "$rel listed more than once"
+    seen+=("$rel")
+  done
+
+  local abs_tasks=()
+  for rel in "${SCENARIOS[@]}"; do
+    abs="$pool/$rel"
+    [[ -d "$abs" ]] && abs_tasks+=("$abs")
+  done
+  local i j
+  for (( i=0; i<${#abs_tasks[@]}; i++ )); do
+    for (( j=i+1; j<${#abs_tasks[@]}; j++ )); do
+      _task_conflicts_pair "${abs_tasks[$i]}" "${abs_tasks[$j]}" \
+        && _lint_add ERROR "$(task_short_name "${abs_tasks[$i]}") conflicts with $(task_short_name "${abs_tasks[$j]}") — both are listed in this fixed exam"
+    done
+  done
+
+  _lint_emit_result "fixed-exam/$name"
+}
+
+_lint_fixed_lists_exam() {
+  local dir="$RHTR_DIR/certs/$CERT/exams/fixed-exam"
+  [[ -d "$dir" ]] || return 0
+  echo ""
+  echo -e "${C_BOLD}Fixed exams (exam-format)${C_RESET}"
+  local f
+  for f in "$dir"/*.conf; do
+    [[ -f "$f" ]] || continue
+    _lint_one_fixed_exam "$f"
+  done
+}
+
 # ── summary ───────────────────────────────────────────────────────────────────
 
 _lint_summary() {
@@ -447,16 +649,21 @@ _lint_summary() {
 # ── entry point ────────────────────────────────────────────────────────────────
 
 cmd_lint() {
-  local target="" filter_topic=""
+  local target="" filter_topic="" format="training"
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --topic) filter_topic="$2"; shift 2 ;;
-      -*)      die "Unknown flag: $1" ;;
-      *)       target="$1"; shift ;;
+      --topic)  filter_topic="$2"; shift 2 ;;
+      --format) format="$2";       shift 2 ;;
+      -*)       die "Unknown flag: $1" ;;
+      *)        target="$1"; shift ;;
     esac
   done
 
+  [[ "$format" == "training" || "$format" == "exam" ]] \
+    || die "Unknown --format '$format' (must be training or exam)"
   [[ -n "$target" && -n "$filter_topic" ]] && die "Specify either a task or --topic, not both"
+  [[ "$format" == "exam" && -n "$filter_topic" ]] \
+    && die "--topic isn't supported with --format exam (the exam-format pool is flat, not chapter-nested)"
 
   _LINT_CERT_RHEL_VERSIONS="$RHEL_VERSIONS"
   _LINT_ERR_TOTAL=0
@@ -465,6 +672,7 @@ cmd_lint() {
 
   _LINT_CERT_USES_DISK=0
   _LINT_CERT_USES_CONTAINERS=0
+  _LINT_CERT_MANAGED_NODES="${MANAGED_NODES:-}"
   local topology_file="$RHTR_DIR/certs/$CERT/topology.sh"
   if [[ -f "$topology_file" ]]; then
     grep -q 'EXTRA_DISK_SIZES_GIB' "$topology_file" && _LINT_CERT_USES_DISK=1
@@ -472,20 +680,31 @@ cmd_lint() {
   fi
 
   echo ""
-  echo -e "${C_BOLD}Lint — $CERT${C_RESET}"
+  echo -e "${C_BOLD}Lint — $CERT [$format]${C_RESET}"
   echo ""
 
   if [[ -n "$target" ]]; then
-    local task_dir; task_dir=$(task_abs_path "$CERT" "$target")
+    local task_dir; task_dir=$(task_abs_path "$CERT" "$target" "$format")
     [[ -d "$task_dir" ]] || die "Task not found: $target"
-    _lint_one_task "$task_dir"
+    _lint_one_task "$task_dir" "$format"
+  elif [[ "$format" == "exam" ]]; then
+    local pool; pool=$(pool_dir "$CERT" exam)
+    if [[ -d "$pool" ]]; then
+      local task_dir
+      while IFS= read -r task_dir; do
+        _lint_one_task "$task_dir" exam
+      done < <(find "$pool" -mindepth 1 -maxdepth 1 -type d | sort)
+    fi
+    _lint_scenario_conflicts
+    _lint_profiles_exam
+    _lint_fixed_lists_exam
   else
     local args=()
     [[ -n "$filter_topic" ]] && args+=(--topic "$filter_topic")
 
     local task_dir
     while IFS= read -r task_dir; do
-      _lint_one_task "$task_dir"
+      _lint_one_task "$task_dir" training
     done < <(select_list_tasks "$CERT" "${args[@]}")
 
     if [[ -z "$filter_topic" ]]; then

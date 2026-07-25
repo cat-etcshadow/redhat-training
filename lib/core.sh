@@ -39,20 +39,40 @@ rhtr_require_no_state() {
 
 # ── path helpers ──────────────────────────────────────────────────────────────
 
+# Root dir of a cert's task pool. format: "training" (default, chNN-nested
+# certs/$cert/tasks/) | "exam" (flat certs/$cert/tasks-exam/). Cert-agnostic —
+# a cert opts into exam-format just by having a tasks-exam/ dir, no lib
+# changes needed.
+pool_dir() {
+  local cert="$1" format="${2:-training}"
+  case "$format" in
+    training) echo "$RHTR_DIR/certs/$cert/tasks" ;;
+    exam)     echo "$RHTR_DIR/certs/$cert/tasks-exam" ;;
+    *) die "Unknown --format '$format' (must be training or exam)" ;;
+  esac
+}
+
+pool_dir_exists() {
+  [[ -d "$(pool_dir "$1" "$2")" ]]
+}
+
 # Absolute path to a task dir, given a cert-relative path like "ch05-selinux/fix-v1"
+# (or a flat "webserver-stack-v1" slug when format=exam)
 task_abs_path() {
   local cert="$1"
   local rel="$2"
-  echo "$RHTR_DIR/certs/$cert/tasks/$rel"
+  local format="${3:-training}"
+  echo "$(pool_dir "$cert" "$format")/$rel"
 }
 
-# Short display name for a task dir path
+# Short display name for a task dir path — strips whichever pool-dir segment
+# (tasks/ or tasks-exam/) the path actually has.
 task_short_name() {
   local task_dir="$1"
-  # e.g. /…/certs/rhcsa/tasks/ch05-selinux/fix-file-context-v1
-  #   → ch05-selinux/fix-file-context-v1
   local cert_tasks_prefix="$RHTR_DIR/certs"
-  echo "${task_dir#$cert_tasks_prefix/*/tasks/}"
+  local short="${task_dir#$cert_tasks_prefix/*/tasks/}"
+  short="${short#$cert_tasks_prefix/*/tasks-exam/}"
+  echo "$short"
 }
 
 # Filesystem-safe slug for a task dir: ch05-selinux__fix-file-context-v1

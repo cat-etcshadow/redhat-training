@@ -4,3 +4,4 @@ CHAPTER=7
 TITLE="Use archive and fetch modules to backup and retrieve files"
 DIFFICULTY="medium"
 RHEL_VERSIONS="9"
+NEEDS_NODES=(node1)

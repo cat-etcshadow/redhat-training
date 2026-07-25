@@ -4,3 +4,4 @@ CHAPTER=10
 TITLE="Use check mode and diff mode to preview playbook changes"
 DIFFICULTY="easy"
 RHEL_VERSIONS="9"
+NEEDS_NODES=(node1)

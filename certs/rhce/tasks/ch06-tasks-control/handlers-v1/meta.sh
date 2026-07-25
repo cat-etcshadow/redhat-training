@@ -4,3 +4,4 @@ CHAPTER=6
 TITLE="Install and configure a service using handlers"
 DIFFICULTY="medium"
 RHEL_VERSIONS="9"
+NEEDS_NODES=(node3 node4)

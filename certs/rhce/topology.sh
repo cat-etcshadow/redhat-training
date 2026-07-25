@@ -2,24 +2,22 @@
 # topology.sh — RHCE VM environment (EX294 / Ansible)
 #
 # Provides: topology_create, topology_destroy
-# Reads:    RHEL_VERSION (set by exam.sh)
-#           NODE_COUNT   (set by exam.sh from --nodes, default 5)
+# Reads:    RHEL_VERSION   (set by exam.sh)
+#           SESSION_NODES  (space-separated e.g. "node1 node3 node4" — set by
+#                           lib/exam.sh's _assign_task_nodes from the union of
+#                           every selected task's NEEDS_NODES, persisted into
+#                           exam.conf so it survives across commands)
 #
 # Environment:
-#   1 control node:    rhtr-rhce-control-<version>  (Rocky Linux, ansible-core +
-#                       ansible-navigator + podman + git installed)
-#   1-5 managed nodes: rhtr-rhce-node{1..NODE_COUNT}-<version>
+#   1 control node: rhtr-rhce-control-<version>  (Rocky Linux, ansible-core +
+#                    ansible-navigator + podman + git installed)
+#   managed nodes:   rhtr-rhce-<node>-<version> for each node in SESSION_NODES
+#                    — only the union of nodes the selected task set actually
+#                    declares gets built, not always all 5.
 #
-# Network layout (via Incus bridge), at the full NODE_COUNT=5:
+# Full node layout (dev=node1, test=node2, prod=node3+node4, balancers=node5):
 #   control  → node1 (dev), node2 (test), node3 (prod), node4 (prod), node5 (balancers)
-# SSH key auth from control → all nodes configured by topology_create.
-#
-# NOTE: most task setup/grade scripts hardcode a 5-node inventory (node1-5,
-# dev/test/prod/balancers groups). lib/exam.sh's _filter_tasks_by_node_count
-# drops any selected task that references a node beyond NODE_COUNT (and warns
-# about what it dropped), so --profile full/--fixed/--topic + --nodes N just
-# runs the subset of that selection that fits in N nodes — it does not need
-# to be combined with a topic already scoped to fewer nodes.
+# SSH key auth from control → all built nodes configured by topology_create.
 
 _rhce_vm()      { echo "rhtr-rhce-${1}-${RHEL_VERSION}"; }
 _rhce_img()     { echo "rocky${RHEL_VERSION}"; }
@@ -29,15 +27,16 @@ CONTROL_NAME=""
 NODE_NAMES=()
 VM_NAMES=()
 
+# Populate VM_NAMES from $SESSION_NODES (persisted in exam.conf, sourced by
+# every caller before this runs — see cmd_shell/cmd_console/cmd_grade/
+# cmd_reset/cmd_destroy in lib/exam.sh). Falls back to the full 5-node set
+# when SESSION_NODES is unset (e.g. no active session yet).
 topology_names() {
-  local node_count="${NODE_COUNT:-5}"
-  [[ "$node_count" =~ ^[1-5]$ ]] || die "Invalid NODE_COUNT '$node_count' — must be 1-5"
-
   CONTROL_NAME=$(_rhce_vm "control")
   NODE_NAMES=()
-  local i
-  for (( i=1; i<=node_count; i++ )); do
-    NODE_NAMES+=("$(_rhce_vm "node$i")")
+  local n
+  for n in ${SESSION_NODES:-node1 node2 node3 node4 node5}; do
+    NODE_NAMES+=("$(_rhce_vm "$n")")
   done
   VM_NAMES=("$CONTROL_NAME" "${NODE_NAMES[@]}")
 }

@@ -21,6 +21,10 @@ Two modes exist:
 - **Exam mode** (`rhtr rhcsa new`) — timed, no hints, graded at the end. Mirrors real exam conditions.
 - **Train mode** (`rhtr rhcsa train`) — no timer, hints on request, solution shown after grading, progress tracked.
 
+Both modes also take `--format training|exam` (default `training`). `training` uses the cert's
+`tasks/` pool; `exam` uses a separate, flat `tasks-exam/` pool (RHCE only so far) where every task
+is graded purely on live state on the managed nodes, never by inspecting the student's playbook.
+
 ---
 
 ## How it works — Incus under the hood
@@ -149,6 +153,8 @@ rhtr rhcsa train                            # full train session (all tasks, no 
 rhtr rhcsa train --topic ch05-selinux       # train on one chapter
 rhtr rhcsa train --difficulty hard          # filter by difficulty
 rhtr rhcsa train --rhel 9                   # specify RHEL version
+
+rhtr rhce new --format exam --fixed webserver-stack-v1   # outcome-graded pool (RHCE only so far)
 ```
 
 ### During a session
@@ -411,10 +417,12 @@ One VM, one extra block disk for storage and LVM tasks.
 
 ### RHCE
 
-One control node, five managed nodes. SSH keys pre-configured from control to
-every node. Control node has `ansible-core`, `ansible-navigator`, `podman`,
-and `git` installed; each task's own `setup.sh`/`params.sh` writes its
-inventory and playbook paths under `/home/student/ansible/`.
+One control node, up to five managed nodes — only the union of nodes the
+selected tasks' `meta.sh` `NEEDS_NODES` actually declares gets built (unset
+defaults to all 5). SSH keys pre-configured from control to every built node.
+Control node has `ansible-core`, `ansible-navigator`, `podman`, and `git`
+installed; each task's own `setup.sh`/`params.sh` writes its inventory and
+playbook paths under `/home/student/ansible/`.
 
 | VM name | Role |
 |---|---|
@@ -430,7 +438,9 @@ inventory and playbook paths under `/home/student/ansible/`.
 Grading is mostly static: `grade.sh` validates playbook/config YAML,
 `--syntax-check`, and required module/parameter usage via targeted greps.
 Some tasks additionally run the playbook for real (e.g. `ansible-navigator
-run`) and assert on its output.
+run`) and assert on its output. That's the default `tasks/` pool; the
+`--format exam` `tasks-exam/` pool always runs the playbook for real and
+grades only on resulting live state, never on the playbook's source.
 
 ---
 

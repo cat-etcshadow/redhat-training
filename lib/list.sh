@@ -28,7 +28,7 @@ cmd_list_topics() {
   echo -e "${C_BOLD}Topics — $CERT${C_RESET}"
   echo ""
 
-  local tasks_dir="$RHTR_DIR/certs/$CERT/tasks"
+  local tasks_dir; tasks_dir=$(pool_dir "$CERT" training)
   [[ -d "$tasks_dir" ]] || die "No tasks directory for cert: $CERT"
 
   while IFS= read -r chapter_dir; do
@@ -82,16 +82,24 @@ cmd_list_tasks() {
 }
 
 cmd_list_profiles() {
-  local profiles_dir="$RHTR_DIR/certs/$CERT/exams/profiles"
+  local format="training"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --format) format="$2"; shift 2 ;;
+      *) die "Unknown flag: $1" ;;
+    esac
+  done
+  local subdir="profiles"; [[ "$format" == "exam" ]] && subdir="profiles-exam"
+  local profiles_dir="$RHTR_DIR/certs/$CERT/exams/$subdir"
   echo ""
-  echo -e "${C_BOLD}Profiles — $CERT${C_RESET}"
+  echo -e "${C_BOLD}Profiles — $CERT [$format]${C_RESET}"
   echo ""
   printf "  %-24s  %-35s  %s\n" "Name" "Description" "Duration"
   printf '  %s\n' "$(printf '─%.0s' {1..70})"
 
   if [[ -d "$profiles_dir" ]]; then
     while IFS= read -r f; do
-      local NAME="" DURATION="" PASS_THRESHOLD="" TOPICS=() FIXED_TASKS=()
+      local NAME="" DURATION="" PASS_THRESHOLD="" TOPICS=() FIXED_TASKS=() SCENARIO_COUNT=""
       source "$f"
       printf "  %-24s  %-35s  %s\n" \
         "$(basename "$f" .conf)" "${NAME:--}" "${DURATION:+${DURATION} min}"
@@ -103,19 +111,29 @@ cmd_list_profiles() {
 }
 
 cmd_list_fixed() {
-  local fixed_dir="$RHTR_DIR/certs/$CERT/exams/fixed"
+  local format="training"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --format) format="$2"; shift 2 ;;
+      *) die "Unknown flag: $1" ;;
+    esac
+  done
+  local subdir="fixed"; [[ "$format" == "exam" ]] && subdir="fixed-exam"
+  local fixed_dir="$RHTR_DIR/certs/$CERT/exams/$subdir"
   echo ""
-  echo -e "${C_BOLD}Fixed exams — $CERT${C_RESET}"
+  echo -e "${C_BOLD}Fixed exams — $CERT [$format]${C_RESET}"
   echo ""
   printf "  %-24s  %-35s  %s\n" "Name" "Description" "Tasks"
   printf '  %s\n' "$(printf '─%.0s' {1..70})"
 
   if [[ -d "$fixed_dir" ]]; then
     while IFS= read -r f; do
-      local NAME="" FIXED_TASKS=()
+      local NAME="" FIXED_TASKS=() SCENARIOS=()
       source "$f"
+      local count=${#FIXED_TASKS[@]}
+      [[ "$format" == "exam" ]] && count=${#SCENARIOS[@]}
       printf "  %-24s  %-35s  %d\n" \
-        "$(basename "$f" .conf)" "${NAME:--}" "${#FIXED_TASKS[@]}"
+        "$(basename "$f" .conf)" "${NAME:--}" "$count"
     done < <(find "$fixed_dir" -name "*.conf" | sort)
   else
     echo "  (none yet)"
@@ -124,10 +142,16 @@ cmd_list_fixed() {
 }
 
 cmd_show_task() {
-  local rel="$1"
-  [[ -n "$rel" ]] || die "Usage: rhtr <cert> show <chapter/task-variant>"
+  local rel="" format="training"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --format) format="$2"; shift 2 ;;
+      *) rel="$1"; shift ;;
+    esac
+  done
+  [[ -n "$rel" ]] || die "Usage: rhtr <cert> show <chapter/task-variant> [--format training|exam]"
 
-  local task_dir="$RHTR_DIR/certs/$CERT/tasks/$rel"
+  local task_dir; task_dir=$(task_abs_path "$CERT" "$rel" "$format")
   [[ -d "$task_dir" ]] || die "Task not found: $rel"
 
   local meta="$task_dir/meta.sh"

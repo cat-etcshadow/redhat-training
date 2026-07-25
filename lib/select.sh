@@ -7,10 +7,18 @@
 # ── main dispatcher ───────────────────────────────────────────────────────────
 
 # Called after exam.conf variables are set by the profile/flag parsing in exam.sh.
-# Reads:  CERT  RHEL_VERSION  (and either TOPICS[] or FIXED_TASKS[] from the profile)
+# Reads:  CERT  RHEL_VERSION  FORMAT  (and either TOPICS[]/FIXED_TASKS[] for
+#         training, or SCENARIOS[]/SCENARIO_COUNT for exam format)
 # Emits:  absolute task dir paths
 select_tasks() {
-  if [[ -n "${FIXED_TASKS[*]:-}" ]]; then
+  if [[ "${FORMAT:-training}" == "exam" ]]; then
+    local pool; pool=$(pool_dir "$CERT" exam)
+    if [[ -n "${SCENARIOS[*]:-}" ]]; then
+      _select_fixed_exam "$pool"
+    else
+      _select_exam_pool "$pool"
+    fi
+  elif [[ -n "${FIXED_TASKS[*]:-}" ]]; then
     _select_fixed
   elif [[ -n "${TOPIC_OVERRIDE:-}" ]]; then
     _select_topic_all "$TOPIC_OVERRIDE"
@@ -42,7 +50,7 @@ _select_weighted() {
 
 _resolve_chapter_dir() {
   local cert="$1" topic="$2"
-  local base="$RHTR_DIR/certs/$cert/tasks"
+  local base; base=$(pool_dir "$cert" training)
   # Exact match first (also accepts full ch03-users style in profiles)
   [[ -d "$base/$topic" ]] && { echo "$base/$topic"; return 0; }
   # Short name: collect glob matches into an array without process substitution
@@ -166,11 +174,66 @@ _task_conflicts_pair() {
 # `rhtr <cert> lint` catches conflicting pairs in fixed lists as a hard error
 # instead; the fix belongs in the .conf file, not at runtime.
 _select_fixed() {
+  local pool; pool=$(pool_dir "$CERT" training)
   for rel in "${FIXED_TASKS[@]}"; do
-    local abs="$RHTR_DIR/certs/$CERT/tasks/$rel"
+    local abs="$pool/$rel"
     [[ -d "$abs" ]] || die "Fixed task not found: $abs"
     _task_compatible "$abs" \
       || warn "Fixed task $rel is not compatible with RHEL $RHEL_VERSION — including anyway"
+    echo "$abs"
+  done
+}
+
+# ── exam-format flat pool ─────────────────────────────────────────────────────
+
+# Random N-of-flat-pool draw for --format exam profiles (SCENARIO_COUNT).
+# Mirrors _select_random_from_chapter, but the pool is flat (no chapter
+# nesting/topic grouping to weight) — every scenario is a direct child dir.
+_select_exam_pool() {
+  local pool_dir_path="$1"
+  local count="${SCENARIO_COUNT:-5}"
+
+  local available=()
+  while IFS= read -r d; do
+    _task_compatible "$d" && available+=("$d")
+  done < <(find "$pool_dir_path" -mindepth 1 -maxdepth 1 -type d | sort)
+
+  if [[ ${#available[@]} -eq 0 ]]; then
+    warn "No compatible scenarios in $pool_dir_path for RHEL $RHEL_VERSION"
+    return
+  fi
+
+  local shuffled=()
+  mapfile -t shuffled < <(printf '%s\n' "${available[@]}" | shuf)
+
+  local picked=() skipped=() d
+  for d in "${shuffled[@]}"; do
+    [[ ${#picked[@]} -ge $count ]] && break
+    if _task_conflicts_with_selected "$d" picked; then
+      skipped+=("$(task_short_name "$d")")
+      continue
+    fi
+    picked+=("$d")
+  done
+
+  if [[ ${#picked[@]} -lt $count ]]; then
+    warn "Only ${#picked[@]}/$count non-conflicting scenario(s) available"
+    [[ ${#skipped[@]} -gt 0 ]] && warn "  skipped (CONFLICTS with an already-selected scenario): ${skipped[*]}"
+  fi
+
+  printf '%s\n' "${picked[@]}"
+}
+
+# Fixed exam-format scenario list (SCENARIOS=(...) in a fixed-exam/*.conf) —
+# mirrors _select_fixed but resolves against the flat tasks-exam/ pool and
+# takes bare scenario slugs instead of chNN-topic/task-slug relative paths.
+_select_fixed_exam() {
+  local pool_dir_path="$1"
+  for rel in "${SCENARIOS[@]}"; do
+    local abs="$pool_dir_path/$rel"
+    [[ -d "$abs" ]] || die "Fixed exam-format scenario not found: $abs"
+    _task_compatible "$abs" \
+      || warn "Fixed scenario $rel is not compatible with RHEL $RHEL_VERSION — including anyway"
     echo "$abs"
   done
 }
@@ -230,7 +293,7 @@ select_list_tasks() {
     esac
   done
 
-  local search_root="$RHTR_DIR/certs/$cert/tasks"
+  local search_root; search_root=$(pool_dir "$cert" training)
   if [[ -n "$filter_topic" ]]; then
     local resolved
     resolved=$(_resolve_chapter_dir "$cert" "$filter_topic") \

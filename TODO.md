@@ -541,6 +541,151 @@ Target ≥6 per chapter. Specific new tasks, all exam-aligned:
 
 ---
 
+## Phase 12 — RHCE: non-prescriptive exam-format mode (`--format exam`)
+
+Audit (2026-07-25) of all 55 `tasks/` task.md/grade.sh pairs: 41 name the exact
+module to use in task.md, 42 `grep` the student's playbook source for that
+module name in grade.sh (fail if a different valid module was used), and only
+8 actually apply the playbook and check resulting state on the managed nodes —
+the rest either only run `--syntax-check` (43) or check file content that
+never touches a node at all. Good for *learning* which module does what; not
+representative of EX294, which states an outcome only and grades on live
+system state, never on how you got there.
+
+Decision: keep `tasks/` exactly as-is (it's good training-wheels material) and
+add a second, parallel pool for exam-realistic practice. The existing pool,
+profiles, and RHCSA are untouched; `topology.sh` gained a scaling mechanism
+(12d below) that both formats share.
+
+**Shipped 2026-07-25** (mechanism cert-agnostic in `lib/`, one scenario
+authored as pipeline proof — see 12a/12b for what's still open):
+
+### 12a — New task pool: `certs/rhce/tasks-exam/`
+
+- [x] Flat directory, not chapter-nested — scenarios span topics by design:
+      `certs/rhce/tasks-exam/<scenario-slug>-v1/`
+- [x] Same file set as `tasks/`: `task.md`, `meta.sh`, `params.sh`, `setup.sh`,
+      `grade.sh`, `solution.sh` — no `hint.md` (real exam gives no hints).
+      Enforced by `lib/lint.sh` (`_lint_check_no_hint`, `_lint_check_no_module_naming`
+      — two-tier: ERROR on FQCN module/collection names, WARN on bare
+      module-ish words), not a separate `bin/lint-tasks` — folded into the
+      existing linter's `--format exam` path instead of a new binary
+- [x] `task.md`: outcome/state only, never names a module, collection, or
+      Ansible construct
+- [x] `meta.sh`: `TOPICS` becomes an array of every chapter/topic the scenario
+      touches (e.g. `TOPICS=(playbooks tasks-control files-jinja2 roles)`) for
+      reporting; `POINTS` scaled up per scenario (compound tasks worth more
+      than single-skill ones)
+- [x] `grade.sh`: state-only, always — no `grep` of `$PLAYBOOK_FILE` or any
+      other source-inspection of the student's work. Every assertion checks
+      live state on the managed nodes via `ansible ... -m command`/curl —
+      stricter than the 8 "reworked" ch04 tasks in `tasks/`, which still keep
+      1-2 module-name greps as a gate; this pool has zero source-inspection
+- [x] First scenario built and live-verified end-to-end against real Incus
+      VMs: `webserver-stack-v1` (httpd + custom docroot + template + SELinux
+      fcontext + firewalld + restart-on-change handler, graded by curl from
+      control). Confirmed grade.sh both PASSes a correct reference solution
+      and FAILs when a step (firewalld) is removed from the playbook.
+- [ ] Curate the remaining ~14-19 scenarios (target ~15-20 total, matching
+      11f's own EX294 estimate of ~17-20 real exam items) — only one exists
+      so far, deliberately (see "why one scenario first" in the session that
+      built this: prove the pipeline once, cheaply, before repeating the
+      shape 15-20 times)
+
+### 12b — New CLI surface: `--format exam`
+
+- [x] `rhtr rhce new --format exam [...]` / `rhtr rhce train --format exam`
+      select from `tasks-exam/` instead of `tasks/`; omitting `--format`
+      keeps today's behavior unchanged. Validated: dies cleanly with a clear
+      message if `--format exam` is requested for a cert with no
+      `tasks-exam/` dir yet (e.g. `rhtr rhcsa new --format exam` today)
+- [x] `lib/select.sh` gained a format-aware selection path: `_select_exam_pool`
+      (random "pick N of the flat pool", `SCENARIO_COUNT` in
+      `exams/profiles-exam/*.conf`) and `_select_fixed_exam` (`SCENARIOS=()`
+      in `exams/fixed-exam/*.conf`), dispatched from `select_tasks()` on
+      `$FORMAT` — resolved differently from the original plan's guess since
+      `tasks-exam/` isn't chapter-scoped
+- [ ] Open question, not decided: whether `cert.conf`'s current
+      `PASS_THRESHOLD=70` / `DEFAULT_DURATION=180` should differ for
+      `--format exam` to better match real EX294 timing — nothing blocks
+      deciding this later, since a `profiles-exam/*.conf`/`fixed-exam/*.conf`
+      file can already set its own `DURATION`/`PASS_THRESHOLD` per the
+      existing per-profile override mechanism
+
+### 12c — Explicitly out of scope for this phase
+
+- [x] Existing `tasks/` learning pool, profiles, and
+      `rhtr rhce new --profile full` (etc.) — unchanged (still module-name
+      grading style; live-verified unaffected: `rhtr rhce lint` and a full
+      live `new`/`shell`/`grade`/`reset`/`destroy` training-pool cycle both
+      still pass with zero regressions)
+- [x] RHCSA — mechanically unchanged (still no `tasks-exam/` dir; `--format
+      exam` on `rhtr rhcsa ...` errors cleanly). The `--format`/pool-dir split
+      itself *is* now cert-agnostic in `lib/` (see 12d) so RHCSA or a future
+      cert can opt in later with zero `lib/` changes — just a `tasks-exam/`
+      dir and matching `exams/profiles-exam|fixed-exam/` — but nothing about
+      RHCSA's own tasks/profiles/topology was touched
+- [ ] Multi-tenant / paid-platform architecture (per-session VM isolation,
+      concurrent provisioning cost, per-user grading queues) — real concern
+      for the planned hosted version of this, but a separate planning pass
+      once the task-format work above lands
+
+### 12d — Generalized beyond the original spec: cert-agnostic mechanism + node scaling
+
+Two things not in the original Phase 12 spec above, added because the repo
+owner wanted them explicitly:
+
+- [x] **Cert-agnostic pool split, not RHCE-specific.** `lib/core.sh` gained
+      `pool_dir()`/`pool_dir_exists()` (training → `certs/$cert/tasks/`, exam
+      → `certs/$cert/tasks-exam/`); every hardcoded `tasks/` reference across
+      `lib/exam.sh`, `lib/select.sh`, `lib/list.sh`, `lib/lint.sh` now goes
+      through it. `task_short_name()`/`task_abs_path()` in `lib/core.sh`
+      generalized to handle either pool-dir segment.
+- [x] **`NEEDS_NODES` topology scaling** (RHCE-specific content, generic
+      mechanism) — mirrors RHCSA's existing `NEEDS_DISK` pattern exactly. A
+      task declares `NEEDS_NODES=(node3 node4)` in `meta.sh`; new
+      `_assign_task_nodes()` in `lib/exam.sh` (sibling to
+      `_assign_task_disks()`) unions every selected task's declared nodes
+      into `SESSION_NODES`, persisted in `exam.conf` (same convention as
+      `MODE`/`RHEL_VERSION`) so every later command
+      (`shell`/`grade`/`reset`/`destroy`) reads the same set.
+      `certs/rhce/topology.sh`'s `topology_names()` builds `VM_NAMES` from
+      `SESSION_NODES` instead of a hardcoded contiguous `node1..NODE_COUNT`
+      range. **Live-verified**: a fixed exam-format session built only
+      control+node3+node4 (not all 5) per its `NEEDS_NODES`; a training-pool
+      task needing only `node1` built only control+node1 — confirmed via
+      `incus list`, and `shell`/`grade`/`reset`/`destroy` all worked correctly
+      against the sparse set.
+- [x] The old `--nodes <1-5>` flag and its grep-based
+      `_task_required_nodes`/`_filter_tasks_by_node_count` heuristic (which
+      only derived a *count* from grepping script text for `node[1-5]`, not
+      an actual subset, and over-counted almost universally since setup.sh
+      conventionally writes a full 5-node inventory regardless of real need)
+      are **removed outright** — breaking CLI change, intentional. Topology
+      now always sizes itself to exactly what's declared, so the failure mode
+      `--nodes` guarded against no longer exists.
+- [x] Backfilled `NEEDS_NODES` onto 15 of the 55 existing `tasks/` tasks whose
+      real footprint (content-derived, cross-checked against actual
+      `ansible`/`ansible-playbook` execution in each task's `grade.sh` — not
+      merely what a setup.sh inventory happens to list) is narrower than all
+      5 nodes: 6 control-node-only (`NEEDS_NODES=()`), 9 single/dual-group.
+      The other 40 tasks (mostly ones whose content targets `all`) are left
+      with `NEEDS_NODES` unset — the safe default already equals the full
+      5-node set, so no behavior change for them.
+- [ ] **Found, not fixed** (pre-existing, unrelated to this feature):
+      `certs/rhce/topology.sh`'s `/etc/hosts` entries (written during
+      `topology_create`, before the pre-exam snapshot is taken) do not
+      survive a `rhtr rhce reset` — confirmed live: after `reset`, `/etc/hosts`
+      on control reverted to having no node entries at all, breaking SSH
+      resolution for every subsequent `ansible-playbook` run. Likely a
+      guest-disk-flush race between the `incus exec` write and Incus's
+      block-level snapshot. Affects any RHCE session (both pools, unrelated
+      to `NEEDS_NODES`) that runs `reset` — needs its own investigation
+      (e.g. an explicit `sync` before `vm_snapshot_create`, or moving the
+      `/etc/hosts` write to something reset-safe).
+
+---
+
 ## Backlog / future
 
 - [ ] RHCA / other cert support (same framework, new `certs/<cert>/` dir)
