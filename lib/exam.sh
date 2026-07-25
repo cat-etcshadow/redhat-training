@@ -567,6 +567,12 @@ _run_task_script() {
     printf '#!/usr/bin/env bash\n'
     cat "$params_file"
     printf '\n'
+    # collections a task's playbook needs (community.general, ansible.posix, …)
+    # must resolve regardless of what any OTHER task's ansible.cfg sets for
+    # collections_paths — that setting fully replaces ansible's default search
+    # list, so a student completing the ansible.cfg task would otherwise hide
+    # system collections from every later task's --syntax-check.
+    printf 'export ANSIBLE_COLLECTIONS_PATH=/usr/share/ansible/collections\n'
     tail -n +$body_from "$script"
   } > "$tmp"
   chmod 0700 "$tmp"
