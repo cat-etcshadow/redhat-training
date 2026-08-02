@@ -6,7 +6,7 @@ inventory = /home/student/ansible/inventory
 remote_user = student
 host_key_checking = False
 EOF
-cat > "$ANSIBLE_DIR/inventory" <<'EOF'
+cat > "$INVENTORY_FILE" <<'EOF'
 [dev]
 node1
 

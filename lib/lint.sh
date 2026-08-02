@@ -197,9 +197,19 @@ _lint_check_placeholders() {
     )
   fi
 
-  local NEEDS_DISK=""
+  local NEEDS_DISK="" NEEDS_NODES=() NEEDS_DISK_SIZE_MIB=""
   source "$task_dir/meta.sh" 2>/dev/null || true
-  [[ "${NEEDS_DISK:-}" == "1" ]] && provided+=(TASK_DISK_SIZE_GB DISK_SIZE)
+  if [[ "${NEEDS_DISK:-}" == "1" ]]; then
+    provided+=(DISK_SIZE)
+    if [[ -n "$NEEDS_DISK_SIZE_MIB" ]]; then
+      provided+=(TASK_DISK_SIZE_MIB)
+    else
+      provided+=(TASK_DISK_SIZE_GB)
+    fi
+    # A per-node disk (NEEDS_NODES set) gets its real device name discovered
+    # and injected as DISK by _generate_task_params — see lib/exam.sh.
+    [[ ${#NEEDS_NODES[@]} -gt 0 ]] && provided+=(DISK)
+  fi
 
   local key p found
   for key in "${placeholders[@]}"; do
@@ -228,14 +238,14 @@ _lint_check_requirements() {
   source "$task_dir/meta.sh" 2>/dev/null || true
 
   local blob="" f
-  for f in setup.sh grade.sh params.sh; do
+  for f in setup.sh nodesetup.sh grade.sh params.sh; do
     [[ -f "$task_dir/$f" ]] && blob+=$(cat "$task_dir/$f")$'\n'
   done
 
   if [[ "${_LINT_CERT_USES_DISK:-0}" == "1" ]] \
-     && grep -qE '\$\{?(TASK_DISK_SIZE_GB|DISK_SIZE)\b' <<<"$blob" \
+     && grep -qE '\$\{?(TASK_DISK_SIZE_GB|TASK_DISK_SIZE_MIB|DISK_SIZE)\b' <<<"$blob" \
      && [[ "${NEEDS_DISK:-0}" != "1" ]]; then
-    _lint_add ERROR "references \$TASK_DISK_SIZE_GB/\$DISK_SIZE but meta.sh doesn't set NEEDS_DISK=1"
+    _lint_add ERROR "references \$TASK_DISK_SIZE_GB/\$TASK_DISK_SIZE_MIB/\$DISK_SIZE but meta.sh doesn't set NEEDS_DISK=1"
   fi
 
   if [[ "${_LINT_CERT_USES_CONTAINERS:-0}" == "1" ]] \
@@ -675,7 +685,7 @@ cmd_lint() {
   _LINT_CERT_MANAGED_NODES="${MANAGED_NODES:-}"
   local topology_file="$RHTR_DIR/certs/$CERT/topology.sh"
   if [[ -f "$topology_file" ]]; then
-    grep -q 'EXTRA_DISK_SIZES_GIB' "$topology_file" && _LINT_CERT_USES_DISK=1
+    grep -qE 'EXTRA_DISK_SIZES_GIB|task-disks\.txt' "$topology_file" && _LINT_CERT_USES_DISK=1
     grep -q 'SESSION_NEEDS_CONTAINERS' "$topology_file" && _LINT_CERT_USES_CONTAINERS=1
   fi
 

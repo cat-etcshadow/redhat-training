@@ -193,6 +193,7 @@ EOF
     (( i++ ))
   done
   _apply_post_setups "${selected_tasks[@]}"
+  _apply_node_setups "${selected_tasks[@]}"
 
   trap - EXIT
   _display_tasks "${selected_tasks[@]}"
@@ -214,6 +215,43 @@ _apply_post_setups() {
       _run_task_script "${VM_NAMES[0]}" "$postsetup" "$task_dir" \
         || die "Post-setup failed for $(task_short_name "$task_dir") — environment not ready for this task"
     fi
+  done
+}
+
+# Run each selected task's nodesetup.sh (if present) once per managed node it
+# targets — unlike setup.sh/postsetup.sh, which only ever run on VM_NAMES[0]
+# (the RHCE control node), some tasks need to prepare state (e.g. a pre-sized
+# LVM volume group, a raw disk) ON a specific managed node itself. Target
+# nodes come from the task's own NEEDS_NODES (same field _assign_task_nodes
+# reads); a task with no NEEDS_NODES has no per-node disk and is skipped.
+# Short node names (node1..node5) are mapped to actual VM names positionally
+# via $SESSION_NODES/$NODE_NAMES, which topology_names() populates from the
+# same space-split list in the same order.
+_apply_node_setups() {
+  local selected_tasks=("$@")
+  local -a session_node_list=($SESSION_NODES)
+  local task_dir nodesetup
+  for task_dir in "${selected_tasks[@]}"; do
+    nodesetup="$task_dir/nodesetup.sh"
+    [[ -f "$nodesetup" ]] || continue
+
+    local NEEDS_NODES=()
+    # shellcheck source=/dev/null
+    source "$task_dir/meta.sh"
+    [[ ${#NEEDS_NODES[@]} -gt 0 ]] || continue
+
+    local n idx vm
+    for n in "${NEEDS_NODES[@]}"; do
+      vm=""
+      for idx in "${!session_node_list[@]}"; do
+        [[ "${session_node_list[$idx]}" == "$n" ]] || continue
+        vm="${NODE_NAMES[$idx]}"
+        break
+      done
+      [[ -n "$vm" ]] || die "Node setup for $(task_short_name "$task_dir") wants '$n', which is not in this session's node set ($SESSION_NODES)"
+      _run_task_script "$vm" "$nodesetup" "$task_dir" \
+        || die "Node setup failed for $(task_short_name "$task_dir") on $vm — environment not ready for this task"
+    done
   done
 }
 
@@ -411,6 +449,7 @@ cmd_reset() {
     fi
   done
   _apply_post_setups "${_reset_tasks[@]}"
+  _apply_node_setups "${_reset_tasks[@]}"
 
   # Clear previous grades so the candidate starts fresh
   : > "$STATE_DIR/grades.txt"
@@ -552,6 +591,28 @@ _run_task_script() {
 # position. Called once at session start, before topology_create — the
 # ordered EXTRA_DISK_SIZES_GIB global tells topology how many disks to
 # attach and how big each one should be.
+#
+# RHCE extension: unlike RHCSA's single VM, a disk-needing RHCE task must say
+# WHICH managed node(s) get the disk — read the same NEEDS_NODES field
+# _assign_task_nodes reads. Unlike _assign_task_nodes (which defaults an
+# unset NEEDS_NODES to all 5 for topology *sizing*), this deliberately does
+# NOT default: an unset NEEDS_NODES here means "no per-node disk targeting",
+# leaving the nodes column empty and this task on the plain
+# EXTRA_DISK_SIZES_GIB/RHCSA-style path. Defaulting here would wrongly turn
+# every existing RHCSA NEEDS_DISK=1 task into a "per-node" one the moment its
+# meta.sh is sourced (RHCSA never sets NEEDS_NODES), so any RHCE task
+# spanning all 5 nodes must spell out
+# NEEDS_NODES=(node1 node2 node3 node4 node5) explicitly.
+# Recorded as a 3rd column in task-disks.txt; empty for RHCSA tasks (which
+# never set NEEDS_NODES), so certs/rhcsa/topology.sh's existing
+# EXTRA_DISK_SIZES_GIB-only path is completely unaffected.
+#
+# A task can also set NEEDS_DISK_SIZE_MIB to opt out of the shared whole-GiB
+# counter and get an exact small MiB-sized disk instead (e.g. a raw
+# partitioning task that needs the disk itself to be tightly sized rather
+# than relying on a filler LV to eat up unwanted free space). Recorded as a
+# 4th column; when set, this task does NOT consume a slot in the shared GiB
+# counter sequence.
 _assign_task_disks() {
   EXTRA_DISK_SIZES_GIB=()
   : > "$STATE_DIR/task-disks.txt"
@@ -559,16 +620,29 @@ _assign_task_disks() {
   local _dt size=2
   while IFS= read -r _dt; do
     [[ -z "$_dt" ]] && continue
-    local NEEDS_DISK=""
+    local NEEDS_DISK="" NEEDS_NODES=() NEEDS_DISK_SIZE_MIB=""
     # shellcheck source=/dev/null
     source "$_dt/meta.sh"
     [[ "$NEEDS_DISK" == "1" ]] || continue
+
+    local nodes=""
+    if [[ ${#NEEDS_NODES[@]} -gt 0 ]]; then
+      nodes="${NEEDS_NODES[*]}"
+    fi
+
+    local this_size=""
+    if [[ -n "$NEEDS_DISK_SIZE_MIB" ]]; then
+      # MiB-override tasks don't touch the shared GiB counter at all.
+      printf '%s|%s|%s|%s\n' "$(task_slug "$_dt")" "" "$nodes" "$NEEDS_DISK_SIZE_MIB" \
+        >> "$STATE_DIR/task-disks.txt"
+      continue
+    fi
 
     size=$(( size + 1 ))
     [[ $size -eq 10 ]] && size=$(( size + 1 ))   # never collide with the 10 GiB root disk
 
     EXTRA_DISK_SIZES_GIB+=("$size")
-    printf '%s|%s\n' "$(task_slug "$_dt")" "$size" >> "$STATE_DIR/task-disks.txt"
+    printf '%s|%s|%s|%s\n' "$(task_slug "$_dt")" "$size" "$nodes" "" >> "$STATE_DIR/task-disks.txt"
   done < "$STATE_DIR/active-tasks.txt"
 }
 
@@ -636,10 +710,65 @@ _task_disk_size_gib() {
   awk -F'|' -v s="$(task_slug "$task_dir")" '$1==s{print $2}' "$STATE_DIR/task-disks.txt"
 }
 
+# Look up the space-separated target node list (e.g. "node3 node4")
+# _assign_task_disks recorded for a task, if any — empty for RHCSA-style
+# single-VM certs and for RHCE tasks with no NEEDS_DISK.
+_task_disk_nodes() {
+  local task_dir="$1"
+  [[ -f "$STATE_DIR/task-disks.txt" ]] || return 0
+  awk -F'|' -v s="$(task_slug "$task_dir")" '$1==s{print $3}' "$STATE_DIR/task-disks.txt"
+}
+
+# Look up the MiB-override size _assign_task_disks gave a task via
+# NEEDS_DISK_SIZE_MIB, if any — empty for tasks using the shared GiB counter.
+_task_disk_size_mib() {
+  local task_dir="$1"
+  [[ -f "$STATE_DIR/task-disks.txt" ]] || return 0
+  awk -F'|' -v s="$(task_slug "$task_dir")" '$1==s{print $4}' "$STATE_DIR/task-disks.txt"
+}
+
+# Given a task's target node list (short names, e.g. "node3 node4"), return
+# the actual VM name of the first one — used to discover a per-node disk's
+# real device name. Maps short names to VM names positionally via
+# $SESSION_NODES / $NODE_NAMES, which topology_names() (certs/rhce/topology.sh)
+# builds from the same space-split list in the same order.
+_first_target_vm() {
+  local nodes="$1"
+  local first_node="${nodes%% *}"
+  [[ -n "$first_node" ]] || return 1
+  local -a session_node_list=($SESSION_NODES)
+  local i
+  for i in "${!session_node_list[@]}"; do
+    if [[ "${session_node_list[$i]}" == "$first_node" ]]; then
+      echo "${NODE_NAMES[$i]}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Discover the real kernel device name (e.g. "vdb", no /dev/ prefix) of a
+# per-node task disk already attached by topology_create, by matching size
+# via lsblk on the VM — same size-match technique RHCSA's setup.sh scripts
+# already use to find "their" disk, just run remotely against the target
+# node instead of locally inside a setup.sh. want_gib/want_mib: pass whichever
+# one is non-empty for this task; the other should be "".
+_discover_task_disk_name() {
+  local vm="$1" want_gib="$2" want_mib="$3"
+  local lsblk_out; lsblk_out=$(vm_exec "$vm" lsblk -dpbno NAME,TYPE,SIZE 2>/dev/null) || return 1
+  if [[ -n "$want_mib" ]]; then
+    awk -v want="$want_mib" '$2=="disk"{mib=int(($3+524288)/1048576); if (mib==want) {print $1; exit}}' <<<"$lsblk_out"
+  else
+    awk -v want="$want_gib" '$2=="disk"{gib=int(($3+536870912)/1073741824); if (gib==want) {print $1; exit}}' <<<"$lsblk_out"
+  fi
+}
+
 # Run each selected task's params.sh (if present) and persist the output to
-# .state/task-params/<slug>.env, plus TASK_DISK_SIZE_GB/DISK_SIZE for tasks
-# _assign_task_disks gave a disk to.  Called once at session start; not
-# called again on reset so the same values survive through the whole session.
+# .state/task-params/<slug>.env, plus TASK_DISK_SIZE_GB/DISK_SIZE (or the MiB
+# equivalent) for tasks _assign_task_disks gave a disk to, plus a discovered
+# real DISK device name for tasks with a per-node target list. Called once
+# at session start; not called again on reset so the same values survive
+# through the whole session.
 _generate_task_params() {
   mkdir -p "$STATE_DIR/task-params"
   local _param_tasks=()
@@ -649,8 +778,10 @@ _generate_task_params() {
     local params_sh="$_pt/params.sh"
     local slug; slug=$(task_slug "$_pt")
     local disk_size; disk_size=$(_task_disk_size_gib "$_pt")
+    local disk_size_mib; disk_size_mib=$(_task_disk_size_mib "$_pt")
+    local disk_nodes; disk_nodes=$(_task_disk_nodes "$_pt")
 
-    [[ -f "$params_sh" || -n "$disk_size" ]] || continue
+    [[ -f "$params_sh" || -n "$disk_size" || -n "$disk_size_mib" ]] || continue
 
     : > "$STATE_DIR/task-params/${slug}.env"
 
@@ -669,6 +800,24 @@ _generate_task_params() {
     if [[ -n "$disk_size" ]]; then
       printf 'TASK_DISK_SIZE_GB="%s"\n' "$disk_size" >> "$STATE_DIR/task-params/${slug}.env"
       printf 'DISK_SIZE="%sGiB"\n' "$disk_size" >> "$STATE_DIR/task-params/${slug}.env"
+    elif [[ -n "$disk_size_mib" ]]; then
+      printf 'TASK_DISK_SIZE_MIB="%s"\n' "$disk_size_mib" >> "$STATE_DIR/task-params/${slug}.env"
+      printf 'DISK_SIZE="%sMiB"\n' "$disk_size_mib" >> "$STATE_DIR/task-params/${slug}.env"
+    fi
+
+    if [[ -n "$disk_nodes" ]]; then
+      local target_vm; target_vm=$(_first_target_vm "$disk_nodes")
+      if [[ -n "$target_vm" ]]; then
+        local disk_name
+        disk_name=$(_discover_task_disk_name "$target_vm" "$disk_size" "$disk_size_mib")
+        if [[ -n "$disk_name" ]]; then
+          printf 'DISK="%s"\n' "${disk_name#/dev/}" >> "$STATE_DIR/task-params/${slug}.env"
+        else
+          warn "Could not discover task disk device name for $(task_short_name "$_pt") on $target_vm"
+        fi
+      else
+        warn "Could not resolve a target VM for $(task_short_name "$_pt")'s node list ($disk_nodes)"
+      fi
     fi
   done
 }

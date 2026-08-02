@@ -14,6 +14,7 @@ midx=$(( RANDOM % ${#MOUNT_POINTS[@]} ))
 pidx=$(( RANDOM % ${#PLAYBOOKS[@]} ))
 
 echo "ANSIBLE_DIR=/home/student/ansible"
+echo "INVENTORY_FILE=/home/student/ansible/inventory"
 echo "PLAYBOOK_FILE=/home/student/ansible/${PLAYBOOKS[$pidx]}"
 echo "VG_NAME=${VG_NAMES[$vgidx]}"
 echo "LV_NAME=${LV_NAMES[$lvidx]}"

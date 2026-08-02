@@ -4,3 +4,6 @@ CHAPTER=11
 TITLE="Create and format a disk partition via Ansible with error handling"
 DIFFICULTY="hard"
 RHEL_VERSIONS="9"
+NEEDS_DISK=1
+NEEDS_NODES=(node3 node4)
+NEEDS_DISK_SIZE_MIB=1000

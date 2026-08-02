@@ -22,6 +22,8 @@
 _rhce_vm()      { echo "rhtr-rhce-${1}-${RHEL_VERSION}"; }
 _rhce_img()     { echo "rocky${RHEL_VERSION}"; }
 _rhce_profile() { echo "rhtr-rhce"; }
+# $1 = sanitized task slug (ch11-storage-lvm__lvm-playbook-v1 -> ch11-storage-lvm-lvm-playbook-v1), $2 = node
+_rhce_disk_name() { echo "rhtr-rhce-disk-${RHEL_VERSION}-${1}-${2}"; }
 
 CONTROL_NAME=""
 NODE_NAMES=()
@@ -66,6 +68,34 @@ topology_create() {
       vm_wait_ready "$vm"
     fi
   done
+
+  # Attach any per-task disks to the managed node(s) that task targets — see
+  # lib/exam.sh's _assign_task_disks, which writes this file as
+  # slug|size_gib|nodes|size_mib (nodes/size_mib empty unless the task
+  # declares NEEDS_NODES/NEEDS_DISK_SIZE_MIB). Idempotent: safe to call again
+  # on VM reuse, mirroring certs/rhcsa/topology.sh's re-attach check.
+  if [[ -f "$STATE_DIR/task-disks.txt" ]]; then
+    local _slug _size_gib _nodes _size_mib
+    while IFS='|' read -r _slug _size_gib _nodes _size_mib; do
+      [[ -n "$_nodes" ]] || continue
+      local _size; _size="${_size_mib:+${_size_mib}MiB}"; _size="${_size:-${_size_gib}GiB}"
+      local _safe_slug="${_slug//__/-}"
+      local _node
+      for _node in $_nodes; do
+        local _node_vm; _node_vm=$(_rhce_vm "$_node")
+        local _disk; _disk=$(_rhce_disk_name "$_safe_slug" "$_node")
+        local _device_name; _device_name="taskdisk-${_safe_slug}"
+        if ! incus storage volume info default "$_disk" &>/dev/null; then
+          info "Creating task disk: $_disk ($_size) for $_node_vm"
+          incus storage volume create default "$_disk" --type=block size="$_size"
+        fi
+        if ! grep -q "^${_device_name}:" <<<"$(incus config device show "$_node_vm")"; then
+          incus config device add "$_node_vm" "$_device_name" disk pool=default source="$_disk"
+          vm_exec "$_node_vm" udevadm settle
+        fi
+      done
+    done < "$STATE_DIR/task-disks.txt"
+  fi
 
   # Bootstrap control node: create student user, install ansible
   info "Bootstrapping control node..."
@@ -133,5 +163,16 @@ topology_destroy() {
   for vm in "${VM_NAMES[@]}"; do
     vm_delete "$vm"
   done
+
+  # Enumerate rather than relying on task-disks.txt — destroy can run in a
+  # fresh shell with no active session state, same reasoning as RHCSA's
+  # topology_destroy (certs/rhcsa/topology.sh).
+  local disk
+  while IFS= read -r disk; do
+    [[ -z "$disk" ]] && continue
+    incus storage volume delete default "$disk" 2>/dev/null || true
+  done < <(incus storage volume list default --format csv -c n 2>/dev/null \
+             | grep "^rhtr-rhce-disk-${RHEL_VERSION}-")
+
   ok "RHCE topology destroyed"
 }

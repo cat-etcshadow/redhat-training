@@ -380,10 +380,11 @@ library compared against the current EX200/EX294 objectives.
       Then run one real RHCE task end-to-end to validate (never done — Phase 5
       has no RHCE equivalent). — **still needs a real end-to-end VM run to
       validate; not testable from this session (no VM access here).**
-- [ ] **RHCE grading is static text-matching** — 43/55 `grade.sh` only run
-      `ansible-playbook --syntax-check` + `grep` for module names/strings in
-      the playbook text; zero execute against node state (only the two
-      ch02-navigator tasks do). Passable by keyword-stuffing a dead playbook.
+- [ ] **RHCE grading is static text-matching** — 41/55 `grade.sh` still only
+      run `ansible-playbook --syntax-check` + `grep` for module names/strings
+      in the playbook text; zero execute against node state. 14/55 now do
+      (2 ch02-navigator + all 9 ch04-playbooks + all 3 ch11-storage-lvm).
+      Passable by keyword-stuffing a dead playbook.
       After the hostname fix: rework grade.sh to run the playbook and assert
       on real state on `node1..node5`. Do chapter by chapter; ch04-playbooks
       and ch11-storage-lvm first (most state-assertable).
@@ -405,15 +406,46 @@ library compared against the current EX200/EX294 objectives.
       pre-populates `$CUSTOM_DIR` with a real file on the prod nodes so
       "apply context to existing files" is an actual, checkable action
       instead of a no-op against a directory that never existed.
-      **Not yet done:** `error-handling-v1` (ch04) and all of
-      `ch11-storage-lvm` (`lvm-playbook-v1`, `lvm-playbook-v2`,
-      `partition-playbook-v1`) target a `research`/`data_vg` volume group or
-      raw disk that doesn't exist anywhere — RHCE managed nodes get **no**
-      extra disk from `topology.sh` (unlike RHCSA's `NEEDS_DISK`/
-      `EXTRA_DISK_SIZES_GIB` mechanism). Real grading for these needs the
-      same kind of per-task extra-disk plumbing built for RHCSA, extended to
-      attach to specific managed nodes (prod = node3/node4, or `all` for
-      error-handling-v1) — a bigger, separate lift than the ch04 rework.
+      **Update (2026-07-26): the per-node disk blocker is resolved and all
+      9/9 ch04-playbooks + all 3/3 ch11-storage-lvm tasks are now reworked**
+      (12/12 of the two highest-priority chapters). Built the missing
+      per-node disk plumbing: `_assign_task_disks`/`_generate_task_params`
+      (`lib/exam.sh`) now read a task's `NEEDS_NODES` alongside `NEEDS_DISK`
+      and record a target node list (plus an optional `NEEDS_DISK_SIZE_MIB`
+      override for tasks needing a small, precisely-sized raw disk) in
+      `task-disks.txt`; `certs/rhce/topology.sh` attaches a dedicated
+      per-(task,node) block volume idempotently (mirroring RHCSA's re-attach
+      check) and cleans it up in `topology_destroy`; a new `nodesetup.sh`
+      per-task hook (mirroring `postsetup.sh`) runs on a task's actual target
+      managed node(s) instead of always on the control node, since
+      `setup.sh`/`postsetup.sh` only ever ran on `VM_NAMES[0]`; the real
+      attached device name is discovered via `incus exec ... lsblk` (size
+      match, same technique RHCSA's own `setup.sh` scripts use) and injected
+      as a `DISK` param, replacing the fabricated `DISK=sdb`/
+      `DISK_DEVICE=/dev/sdb` guesses that `partition-playbook-v1`/
+      `error-handling-v1`'s `params.sh` had never validated against how Incus
+      VM disks actually enumerate. `lib/lint.sh` updated to know about the
+      new `DISK`/`TASK_DISK_SIZE_MIB` params and to scan `nodesetup.sh` too;
+      `rhtr rhce lint` and `rhtr rhcsa lint` both still pass clean (0 errors)
+      after the changes. The 4 previously-blocked tasks' `grade.sh` now run
+      the real playbook and assert live state instead of grepping playbook
+      text: `error-handling-v1`/`lvm-playbook-v1` pre-size their VG's free
+      space (via `nodesetup.sh`) to land strictly between `FALLBACK_SIZE` and
+      `LV_SIZE`, so the real `block:`/`rescue:` behavior is actually
+      exercised every run (confirmed against both tasks' `solution.sh`, which
+      always attempts `LV_SIZE` first) and graded via `lvs`
+      size/`ansible-playbook` output content; `lvm-playbook-v2` asserts LV
+      size/filesystem/mount/fstab persistence on `prod`; `partition-playbook-v1`
+      sizes its raw disk (`NEEDS_DISK_SIZE_MIB=1000`) to force the same
+      deterministic rescue path and asserts partition size/filesystem via
+      `lsblk`/`blkid`. **Still needs a real end-to-end VM run** (no VM access
+      from this session, same limitation as the rest of 11a) — disk device
+      enumeration, the LVM free-space math, and Incus volume attach/detach
+      can only be validated live; in particular verify `_generate_task_params`'s
+      device-name discovery actually resolves before `nodesetup.sh` runs, and
+      that both `error-handling-v1`/`lvm-playbook-v1` reliably force the
+      rescue path across `node1..node5` without a race between disk
+      attachment and `nodesetup.sh` execution.
       **First live-VM run (2026-07-24) hit exactly this kind of bug:**
       `selinux-playbook-v1/setup.sh`'s two new `ansible prod ...` calls ran
       from `student`'s home dir instead of `$ANSIBLE_DIR`, so `ansible.cfg`'s
@@ -435,6 +467,25 @@ library compared against the current EX200/EX294 objectives.
       does `rm -rf "$STATE_DIR"` but never `topology_destroy`; aborted setup
       leaves Incus VMs behind while deleting the state that tracks them.
       Fixed via `_start_session_cleanup` in `lib/exam.sh`.
+- [ ] **Task-params leak through the pushed script itself** — confirmed by live
+      code read, 2026-07-25. `_run_task_script` (`lib/exam.sh:508-543`)
+      prepends the *entire* `params.sh` output — every `KEY=value`, including
+      values never surfaced via `{{...}}` in `task.md` — as plaintext into the
+      wrapper script pushed into the VM and executed for both `setup.sh` and
+      `grade.sh`. Since the student's own shell (`rhtr shell` → `incus shell`)
+      is also root in the same VM, a task whose grader checks a hidden
+      literal can be passed by reading the transient script during execution
+      and fabricating the expected output instead of doing the work.
+      Confirmed exploitable on `ch12-logging/journalctl-since-v1`: its
+      `setup.sh` holds the wrapper file on disk for several seconds via a
+      `while`+`sleep 1` loop (straddling a timestamp boundary on purpose),
+      during which `KEEP_MESSAGE`/`DECOY_MESSAGE` — never shown in
+      `task.md` — sit readable in `/tmp/rhtr-*.sh`. Independent of any
+      hosting plans — undermines grading integrity today. Fix needs hidden
+      params to stop being blanket-concatenated into every pushed script
+      (e.g. inject only what `grade.sh`/`setup.sh` actually use, or pass
+      hidden values via `incus exec`'s own environment rather than a
+      `cat`-included file).
 
 ### 11b — Fix: task content (hint/answer leaks — full audit, corpus otherwise clean)
 
@@ -683,6 +734,110 @@ owner wanted them explicitly:
       to `NEEDS_NODES`) that runs `reset` — needs its own investigation
       (e.g. an explicit `sync` before `vm_snapshot_create`, or moving the
       `/etc/hosts` write to something reset-safe).
+
+---
+
+## Phase 13 — Hosted paid-platform readiness (architecture review, 2026-07-25)
+
+Findings from a full-repo review (`bin/rhtr`, all of `lib/*.sh`, both
+`certs/*/topology.sh`, plus a spot-check of RHCSA/RHCE task graders) done
+specifically to scope what stands between today's single-user local CLI and
+a paid, multi-tenant hosted training site. This phase is a findings +
+open-questions record, not a committed design — nothing below has been
+implemented, and sequencing/scope hasn't been decided. See chat log
+2026-07-25/26 for the full review and the questions put back to the repo
+owner.
+
+### 13a — Confirmed blockers: today's tool is hard-coded single-tenant
+
+- [ ] Single global `.state/` dir anchored to the repo clone (`bin/rhtr:7`) —
+      zero session/tenant ID anywhere; "one clone = one session" is enforced
+      by convention (README), not code.
+- [ ] Zero locking anywhere (`flock` appears nowhere in the codebase) —
+      `grades.txt`, `exam.conf`, `active-tasks.txt`, and progress JSON are
+      all read-modify-write with no protection; concurrent invocations
+      against the same state corrupt or silently lose data.
+- [ ] Training-progress history keyed only by OS `$HOME`
+      (`lib/progress.sh:4`, `~/.local/share/redhat-training/progress/` — note
+      this is the real path; both `README.md` and this file's own header
+      comment say `~/.redhat-training/progress/`, which is stale/wrong) —
+      not per-tenant; two tenants on one host user would merge histories.
+- [ ] VM names are a pure function of cert+RHEL-version
+      (`rhtr-rhcsa-server-9`, `rhtr-rhce-control-9`, ...) with no
+      session/user component — two concurrent same-cert-same-version
+      sessions compute the *identical* VM name, and `topology_create` treats
+      an existing VM as reusable rather than erroring, so a second session
+      can literally take over a first session's live VM.
+- [ ] Shared, singular Incus profile per cert (`rhtr-rhcsa`, `rhtr-rhce`)
+      with hardcoded CPU/RAM — no per-tenant tiering possible without
+      mutating a profile object shared by every VM that references it.
+- [ ] Shared default network bridge and shared default storage pool for all
+      VMs — README already flags "isolated bridge network" as
+      planned-not-implemented; no network segmentation between tenants
+      exists today.
+- [ ] `CERT` and profile/fixed/topic names arrive as raw CLI args and are
+      used as unsanitized path components that get `source`d as bash
+      (`bin/rhtr:76,82-83`; `lib/exam.sh:716-717,725-726`) — safe only
+      because today's sole caller is a trusted local shell user; the moment
+      any of this is reachable from a web form, it's arbitrary-file-source →
+      host code execution.
+- [ ] Cleanup/EXIT-trap coverage is narrow — only wraps session *creation*
+      (`lib/exam.sh:117-124`); a killed/OOM'd process during
+      `grade`/`shell`/`reset` leaks VMs and can wedge `.state/` until a human
+      intervenes. Normal failure mode in a hosted backend (worker timeouts,
+      OOM kills), not normal for a human at a terminal.
+- [ ] The tool's whole execution model assumes its caller already has
+      host-root-equivalent access (Incus group membership, sudo for agent
+      bootstrap) — incompatible with an untrusted web-facing caller by
+      design; needs a privileged broker layer in between, not a config
+      tweak.
+
+### 13b — Resource/capacity math (from actual code, for pricing & infra sizing)
+
+- [ ] RHCSA session: 2 vCPU / 2 GiB / 1 VM + one block disk
+      (`certs/rhcsa/topology.sh`). RHCE full-topology session: 1 control +
+      up to 5 nodes × 2 vCPU/1 GiB each = **12 vCPU / 6 GiB per session**
+      (`certs/rhce/topology.sh:54-55` + launch loop) — RHCE is ~6x the
+      footprint of RHCSA and CPU-bound, not RAM-bound.
+- [ ] Rough math on a 32 vCPU / 128 GB box, no overcommit: ~16 concurrent
+      RHCSA sessions vs. only ~2 concurrent full RHCE sessions. This is a
+      real constraint on what a launch pricing/tier model can promise.
+- [ ] RHCE provisioning is fully sequential — 6 VMs launched, agent-waited,
+      and `dnf`/`ansible-galaxy`-provisioned one after another, no
+      parallelism (`certs/rhce/topology.sh`) — realistic wall-clock is
+      minutes for RHCSA, likely 5-15+ minutes for a full RHCE session. Not
+      "instant" — matters for whether launch is on-demand-provision or a
+      pre-warmed pool.
+- [ ] No snapshot/VM expiry or TTL exists (README already notes
+      `--expiry` as "not yet used") — abandoned/crashed sessions accumulate
+      VM disk + block-volume usage indefinitely with no cleanup mechanism
+      today.
+
+### 13c — Grading integrity as a paid-product trust issue
+
+- [ ] 43/55 RHCE training-pool `grade.sh` scripts only check playbook
+      syntax/text, not live state (tracked in 11a) — for a paid product this
+      is a direct refund/trust risk on the RHCE side specifically; RHCSA
+      grading was independently re-verified as solid in this review
+      (spot-checked ch03/05/09/11/16, all live-state).
+- [ ] `lib/lint.sh` has no check for grading rigor at all (confirmed: its
+      checks cover meta/syntax/shellcheck/placeholders/requirements/
+      hint-leak/conflicts only) — nothing today stops a new task from
+      shipping with a gameable grader, and nothing would have caught the
+      task-params leak logged in 11a either.
+
+### 13d — Open questions (not yet answered by the repo owner)
+
+- [ ] Target hosting shape: single box vs. multiple hosts, on-prem
+      (ji-p-pa01-style) vs cloud — drives whether "multi-tenant on one host"
+      or "one VM-per-user across a fleet" is the right architecture.
+- [ ] Whether RHCE ships at paid launch given its cost/latency profile, or
+      RHCSA-only first.
+- [ ] Auth/billing/web-frontend stack — zero code exists for any of this
+      yet; entirely separate from the `rhtr` engine work.
+- [ ] Legal/trademark posture — RHCSA/RHCE/EX200/EX294 are Red Hat marks; a
+      paid, publicly marketed product using them needs at minimum a clear
+      non-affiliation disclaimer.
 
 ---
 
