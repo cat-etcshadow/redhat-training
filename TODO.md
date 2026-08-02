@@ -38,210 +38,28 @@ These files contain no RHCSA- or RHCE-specific logic.
 - [x] `certs/rhcsa/cert.conf` — CERT_NAME, EXAM_CODE, PASS_THRESHOLD=70,
       DEFAULT_DURATION=150, DEFAULT_RHEL_VERSION=9, RHEL_VERSIONS="8 9 10"
 - [x] `certs/rhcsa/topology.sh` — `topology_create`: VM `rhtr-rhcsa-server-<ver>` +
-      4 GB block disk; `topology_destroy`: delete VM + volume
+      one block disk per selected `NEEDS_DISK=1` task; `topology_destroy`: delete VM
+      + volumes
 
 ---
 
 ## Phase 3 — RHCSA task library ✓
 
-Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
-`hint.md` and `solution.sh` are optional but should be added from the start where possible.
-
-### ch01 — Essential Tools
-- [x] `archive-compress-v1` — create and extract gzip tar archive
-- [x] `archive-compress-v2` — create and extract bzip2/xz tar archive (randomised format)
-- [x] `links-v1` — create hard link and symbolic link, verify inode sharing
-- [x] `find-files-v1` — use find with -type and -name to locate files, save to output file
-- [x] `find-exec-v1` — use find -exec to fix world-writable permissions recursively
-- [x] `grep-regex-v1` — grep -ri for errors and grep -rE for IPv4 addresses in log files
-- [x] `grep-extended-v1` — grep to filter /etc/passwd-format file, cut to extract usernames
-- [x] `scp-transfer-v1` — scp file to localhost, rsync directory; SSH key pre-configured
-- [x] `vim-edit-v1` — edit config file with a text editor (key=value substitutions)
-- [x] `man-docs-v1` — use man pages to find archive flag for cp, use find -size to locate large files
-- [x] `sort-uniq-v1` — sort/uniq -c to find the most frequent line in a log file
-- [x] `tar-selective-v1` — extract a single named file from a tar archive without unpacking the rest
-- [x] `io-redirect-v1` — append stdout and redirect stderr to separate files in one invocation
-
-### ch02 — Shell Scripting
-- [x] `scripting-if-v1` — write check_user.sh: if/elif/else, id check, specific exit codes
-- [x] `scripting-for-list-v1` — write create_dirs.sh: for loop over literal list, mkdir + README
-- [x] `scripting-for-files-v1` — write archive_logs.sh: for loop over find output, gzip each .log
-- [x] `scripting-while-v1` — write create_users_from_file.sh: while IFS= read -r, useradd
-- [x] `scripting-args-v1` — write backup_file.sh: $1/$2/$#, -f/-r/-d tests, timestamp suffix
-- [x] `scripting-case-v1` — write svc_ctl.sh: case statement for start/stop/restart/status/enable
-- [x] `scripting-functions-v1` — write disk_report.sh: named functions, --output flag, mountpoint check
-- [x] `scripting-heredoc-v1` — write gen_config.sh: heredoc with/without variable expansion
-- [x] `scripting-exit-codes-v1` — write script that uses meaningful exit codes, use $? and ||/&&
-- [x] `scripting-arrays-v1` — write inventory_report.sh: indexed arrays, for loop over indices
-- [x] `scripting-until-v1` — write wait_for_file.sh: until loop polling with a timeout
-- [x] `scripting-defaults-v1` — write deploy_env.sh: ${VAR:-default} parameter expansion, string tests
-
-### ch03 — Manage Local Users and Groups
-- [x] `create-users-v1` — create two users with specific UIDs, group with GID, sudo NOPASSWD
-- [x] `create-users-v2` — different users/UIDs, password aging constraint
-- [x] `sudo-nopasswd-v1` — pre-existing user, configure sudoers drop-in for specific command
-- [x] `password-aging-v1` — set max age, warning days, inactive period for existing user
-- [x] `group-membership-v1` — change primary group, add supplementary groups
-- [x] `delete-user-v1` — lock account, userdel -r, groupdel, remove sudoers drop-in
-- [x] `usermod-lock-v1` — lock one account with usermod -L, unlock another with usermod -U
-- [x] `group-batch-membership-v1` — set exact group membership at once with gpasswd -M
-- [x] `useradd-custom-v1` — create a system service account: nologin shell, custom home, no auto-created dir
-
-### ch04 — Control Access to Files
-- [x] `setgid-dir-v1` — create directory with SGID, correct group ownership and mode
-- [x] `sticky-bit-v1` — SGID + sticky bit on shared dir, mode 3770
-- [x] `acl-v1` — set named ACL entries on a directory, verify with getfacl
-- [x] `umask-v1` — set persistent per-user and system-wide umask
-- [x] `fix-perms-v1` — diagnose and correct broken web root permissions (chgrp -R, find -exec chmod)
-- [x] `acl-mask-v1` — fix an ACL mask restricting a named entry's effective permissions
-- [x] `suid-sgid-audit-v1` — find files with SUID set, remove an unauthorized one, keep an approved one
-- [x] `numeric-perms-v1` — apply exact numeric chmod modes across a set of files
-
-### ch05 — Manage SELinux Security
-- [x] `fix-file-context-v1` — wrong context on /var/www/html subdir, fix with semanage + restorecon
-- [x] `fix-file-context-v2` — wrong context on custom service data dir
-- [x] `boolean-httpd-v1` — enable httpd_can_network_connect boolean persistently
-- [x] `boolean-nfs-v1` — enable SELinux boolean for NFS home dirs
-- [x] `troubleshoot-audit-v1` — find SELinux denial in audit log, identify boolean fix
-- [x] `selinux-port-v1` — add non-standard port to http_port_t, configure Apache
-- [x] `selinux-mode-v1` — setenforce 0/1, persist SELINUX=enforcing in config, ls -Z output
-- [x] `selinux-restorecon-v1` — cp --preserve=context carries a wrong type in; fix with restorecon alone
-- [x] `selinux-boolean-set-v1` — enable a randomly-chosen SELinux boolean persistently
-- [x] `selinux-port-ssh-v1` — label a non-standard SSH port with ssh_port_t, configure sshd to listen on it
-
-### ch06 — Tune System Performance
-- [x] `tuned-profile-v1` — set and activate a specific tuned profile persistently
-- [x] `process-priority-v1` — renice a running process, launch process with specific nice value
-- [x] `kill-signals-v1` — kill processes with pkill, killall, and kill by PID
-- [x] `job-control-v1` — launch a background process with nohup, redirect output, survive hangup
-- [x] `ps-filter-report-v1` — ps -ef + grep to find PIDs by name, save filtered report
-- [x] `nice-launch-v1` — renice -u to change scheduling priority for all of a user's processes at once
-
-### ch07 — Schedule Future Tasks
-- [x] `at-job-v1` — schedule one-time job with at
-- [x] `cron-job-v1` — create cron entry for a user to run script at specific time
-- [x] `systemd-timer-v1` — create a systemd timer unit for a recurring task
-- [x] `tmpfiles-v1` — configure tmpfiles.d to create/clean a directory on boot
-- [x] `cron-system-v1` — system-wide cron job in /etc/cron.d with a user field
-- [x] `at-manage-v1` — atq to list queued jobs, atrm to remove one specific job
-- [x] `cron-env-v1` — set PATH in a crontab so a job can find a non-standard-PATH dependency
-
-### ch08 — Install and Update Software Packages
-- [x] `dnf-install-v1` — install a package, verify with rpm -q
-- [x] `dnf-group-v1` — install a package group
-- [x] `dnf-module-v1` — enable a nodejs module stream, install from it
-- [x] `repo-enable-v1` — enable a disabled DNF repo, install package from it
-- [x] `dnf-local-rpm-v1` — install from local .rpm file; configure local file:// repo with createrepo_c
-- [x] `dnf-history-undo-v1` — undo an entire transaction with dnf history undo (not per-package remove)
-- [x] `dnf-autoremove-v1` — dnf mark dependency + dnf autoremove to clean an orphaned package
-- [x] `dnf-config-manager-v1` — dnf config-manager --add-repo, disable gpgcheck, install from it
-
-### ch09 — Manage Basic Storage
-- [x] `add-partition-xfs-v1` — partition disk (MBR), format XFS, mount persistently at /mnt/data
-- [x] `add-partition-ext4-v1` — partition disk (MBR), format ext4, mount persistently
-- [x] `add-partition-gpt-v1` — partition disk with GPT (parted), format XFS, fstab by UUID
-- [x] `add-partition-vfat-v1` — partition disk, format vfat/FAT32, fstab with 0 0 fsck fields
-- [x] `swap-partition-v1` — create swap partition, activate persistently
-- [x] `persistent-mount-uuid-v1` — update /etc/fstab to use UUID instead of device path
-- [x] `persistent-mount-label-v1` — mount by filesystem label
-- [x] `mount-options-v1` — persistent mount with nosuid/nodev/noexec hardened options
-- [x] `resize-partition-v1` — grow a partition with growpart and its XFS filesystem online
-- [x] `fstab-noauto-v1` — noauto,user options so a regular user can mount/unmount without root
-
-### ch10 — Manage Storage Stack (LVM)
-- [x] `create-lv-v1` — PV on extra disk, VG vg_data, LV lv_storage, format XFS, mount at /mnt/storage
-- [x] `extend-lv-v1` — extend existing LV by 300 MB online without data loss
-- [x] `lv-ext4-v1` — create LV, format ext4, mount persistently
-- [x] `stratis-pool-v1` — create Stratis pool + filesystem, fstab with x-systemd.requires (RHEL_VERSIONS="9 10")
-- [x] `extend-lv-ext4-v1` — extend existing LV, resize ext4 filesystem online with resize2fs
-- [x] `lvm-snapshot-v1` — create an LVM snapshot of an existing logical volume
-- [x] `vg-extend-v1` — add a new physical volume to an existing (near-full) volume group
-- [x] `lv-rename-v1` — lvrename an LV and fix a device-path fstab reference so it still mounts
-
-### ch11 — Control Services and Boot Process
-- [x] `reset-root-password-v1` — root locked, candidate resets via rd.break to known value
-- [x] `boot-target-v1` — switch default boot target to multi-user.target
-- [x] `repair-fstab-v1` — broken /etc/fstab entry prevents boot, fix in emergency shell
-- [x] `service-enable-v1` — ensure a service is enabled and running after reboot
-- [x] `grub-param-v1` — add kernel parameter with grubby
-- [x] `custom-unit-v1` — create Type=oneshot systemd unit file, enable and start it
-- [x] `service-mask-v1` — systemctl mask a deprecated unit so it can't be started even manually
-- [x] `grub-timeout-v1` — set GRUB_TIMEOUT in /etc/default/grub, regenerate grub.cfg
-- [x] `disable-service-v1` — stop and disable a running, enabled service
-
-### ch12 — Analyze and Store Logs
-- [x] `journald-persistent-v1` — configure journald to persist logs across reboots
-- [x] `journald-size-v1` — set journald Storage=persistent and SystemMaxUse
-- [x] `rsyslog-rule-v1` — add rsyslog rule to forward specific facility to a file
-- [x] `chrony-server-v1` — configure chrony NTP client with specific server
-- [x] `journalctl-v1` — query journal by syslog identifier and by boot, redirect to files
-- [x] `timedatectl-v1` — set system timezone with timedatectl, enable chronyd NTP service
-- [x] `logrotate-v1` — configure /etc/logrotate.d for a custom app log: size, rotate, compress, copytruncate
-- [x] `journalctl-priority-v1` — filter journal entries by priority (-p err), excluding lower-priority noise
-- [x] `ntp-toggle-v1` — enable/disable NTP sync with timedatectl set-ntp (not touching chronyd directly)
-
-### ch13 — Manage Networking
-- [x] `hostname-dns-v1` — set static hostname, add /etc/hosts entry
-- [x] `static-ip-v1` — configure second NIC with static IP via nmcli (requires topology 2nd NIC)
-- [x] `nmcli-bond-v1` — create network bond (RHEL_VERSIONS="8 9 10")
-- [x] `routing-v1` — add persistent static route via nmcli
-- [x] `ipv6-addr-v1` — assign static IPv6 address via nmcli, method manual, persist
-- [x] `ssh-key-auth-v1` — generate RSA key pair, configure authorized_keys, functional test
-- [x] `nmcli-connection-add-v1` — nmcli con add a new dummy-interface profile with static IPv4, autoconnect no
-- [x] `dns-resolver-v1` — set DNS servers via nmcli ipv4.dns, ignore-auto-dns, verify resolv.conf
-- [x] `ssh-hardening-v1` — sshd_config: PermitRootLogin no, PasswordAuthentication no
-
-### ch14 — Access Network-Attached Storage
-- [x] `nfs-mount-v1` — mount NFS share persistently (fstab checked; server not required in lab)
-- [x] `nfs-export-v1` — configure NFS server export
-- [x] `autofs-v1` — configure autofs for indirect NFS mounts
-- [x] `nfs-mount-options-v1` — persistent NFS mount with ro,noatime,rsize/wsize tuning
-- [x] `autofs-direct-v1` — direct autofs map (/- master entry, full-path key, vs. indirect wildcard)
-- [x] `showmount-v1` — showmount -e to discover an export, mount it (self-hosted local NFS server)
-
-### ch15 — Manage Network Security
-- [x] `firewall-add-service-v1` — add http + https services permanently to firewalld
-- [x] `firewall-add-port-v1` — open a specific TCP port permanently
-- [x] `firewall-rich-rule-v1` — add a rich rule allowing specific source IP
-- [x] `firewall-zone-v1` — assign interface to zone, set zone default
-- [x] `firewall-port-forward-v1` — permanent --add-forward-port redirecting one port to another
-- [x] `firewall-remove-service-v1` — permanently remove a service from a zone
-- [x] `firewall-masquerade-v1` — permanently enable IP masquerading on a zone
-
-### ch16 — Run Containers
-- [x] `run-container-v1` — pull and run container with podman, map port
-- [x] `container-env-v1` — run container with env vars and port mapping
-- [x] `container-service-v1` — run container as root systemd service via podman generate systemd
-- [x] `container-storage-v1` — run container with persistent bind-mount volume
-- [x] `container-build-v1` — build image from Containerfile with podman build, verify output
-- [x] `container-user-service-v1` — rootless container as user systemd service; loginctl enable-linger
-- [x] `container-inspect-v1` — podman inspect + skopeo inspect, save JSON/output to report file
-- [x] `container-registry-v1` — podman search, pull, tag image, review registries.conf
-- [x] `container-healthcheck-v1` — run with --health-cmd/--health-interval, wait for healthy status
-- [x] `container-network-v1` — podman network create with a subnet, attach a container to it
-- [x] `container-resource-limits-v1` — run with --memory and --cpus, verify via podman inspect
+188 tasks across 16 chapters (`ch01-tools` through `ch16-containers`). Each task
+carries `meta.sh`, `task.md`, `setup.sh`, `grade.sh`, plus optional `params.sh`,
+`hint.md`, and `solution.sh`. See the EX200 coverage table in README.md for the
+full, current task list — the original per-chapter plan tracked here drifted out
+of date as tasks were added and is no longer duplicated.
 
 ---
 
 ## Phase 4 — RHCSA exam profiles and fixed exams ✓
 
-- [x] `certs/rhcsa/exams/profiles/full.conf` — balanced draw across all chapters, ~120 pts, 120 min
-- [x] `certs/rhcsa/exams/profiles/topic-tools.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-scripting.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-users.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-permissions.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-selinux.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-performance.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-scheduling.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-packages.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-storage.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-lvm.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-boot.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-logging.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-networking.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-nfs.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-firewall.conf`
-- [x] `certs/rhcsa/exams/profiles/topic-containers.conf`
+- [x] `certs/rhcsa/exams/profiles/full.conf` — balanced draw across all chapters
+- [x] One per-chapter profile for each of the 16 chapters: `tools`, `scripting`,
+      `users`, `permissions`, `selinux`, `performance`, `scheduling`, `packages`,
+      `storage`, `lvm`, `boot`, `logging`, `networking`, `nfs`, `firewall`,
+      `containers`
 - [x] `certs/rhcsa/exams/fixed/full-v1.conf` — first curated fixed exam
 - [x] `certs/rhcsa/exams/fixed/full-v2.conf` — second curated fixed exam (different variants)
 
@@ -254,8 +72,8 @@ Each task needs: `meta.sh`, `task.md`, `setup.sh`, `grade.sh`.
 - [x] `rhtr rhcsa grade` grades all tasks, produces score table
 - [x] `rhtr rhcsa reset` restores snapshot and re-applies setups
 - [x] `rhtr rhcsa destroy` removes VMs and clears state
-- [ ] `rhtr rhcsa list-tasks --rhel 8` filters correctly
-- [ ] `rhtr rhcsa progress` shows training history
+- [x] `rhtr rhcsa list-tasks --rhel 8` filters correctly
+- [x] `rhtr rhcsa progress` shows training history
 - [ ] Test `--rhel 8` and `--rhel 10` end to end (RHEL 10 validated; RHEL 8/9 images not yet imported on this host)
 
 Validated 2026-07-06 on RHEL 10 after fixing the incus-agent bootstrap (see
@@ -295,9 +113,13 @@ here to avoid drift.
 ## Phase 8 — RHCE profiles and fixed exams ✓
 
 - [x] `certs/rhce/exams/profiles/full.conf`
-- [x] `certs/rhce/exams/profiles/inventory.conf`, `playbooks.conf`, `roles.conf`,
-      `troubleshooting.conf`, `variables.conf`, `vault.conf`, `navigator-git.conf`
+- [x] One focused-practice profile per chapter: `ansible-basics.conf`,
+      `navigator-git.conf`, `inventory.conf`, `playbooks.conf`, `variables.conf`,
+      `tasks-control.conf`, `files-jinja2.conf`, `roles.conf`, `vault.conf`,
+      `troubleshooting.conf`, `storage-lvm.conf`
 - [x] `certs/rhce/exams/fixed/full-v1.conf`, `full-v2.conf`
+- [x] Exam-format pool configs: `exams/profiles-exam/full.conf`,
+      `exams/fixed-exam/webserver-stack-v1.conf`
 
 ---
 
@@ -309,10 +131,6 @@ here to avoid drift.
 - [ ] Validate task library on load (all required files present, meta.sh parseable)
 - [ ] `--dry-run` flag for `new` — show which tasks would be selected without starting VM
 - [ ] Man page or `rhtr help <command>` per-command help
-
----
-
-## Phase 9 — Polish and ergonomics (continued)
 
 ### Incus project isolation (defer until it causes real problems)
 
@@ -380,85 +198,41 @@ library compared against the current EX200/EX294 objectives.
       Then run one real RHCE task end-to-end to validate (never done — Phase 5
       has no RHCE equivalent). — **still needs a real end-to-end VM run to
       validate; not testable from this session (no VM access here).**
-- [ ] **RHCE grading is static text-matching** — 41/55 `grade.sh` still only
-      run `ansible-playbook --syntax-check` + `grep` for module names/strings
-      in the playbook text; zero execute against node state. 14/55 now do
-      (2 ch02-navigator + all 9 ch04-playbooks + all 3 ch11-storage-lvm).
-      Passable by keyword-stuffing a dead playbook.
-      After the hostname fix: rework grade.sh to run the playbook and assert
-      on real state on `node1..node5`. Do chapter by chapter; ch04-playbooks
-      and ch11-storage-lvm first (most state-assertable).
-      **Progress:** 8/9 ch04-playbooks tasks reworked (firewall, nmcli,
-      packages-v1, packages-v2, selinux, service, user-group, yum-repo) —
-      each now runs the real playbook via `ansible-playbook` (not just
-      `--syntax-check`) as the `student` user, then asserts live state with
-      `ansible <group> -m command/shell -a ...` (rpm -q, systemctl is-active,
+- [ ] **RHCE grading is static text-matching** — 41 of 55 `tasks/` `grade.sh`
+      still only run `ansible-playbook --syntax-check` + `grep` for module
+      names/strings in the playbook text, never executing against node state,
+      so they're passable by keyword-stuffing a dead playbook. Rework the
+      rest chapter by chapter to run the playbook and assert real state on
+      `node1..node5`.
+
+      Done: 14/55 — all 9 `ch04-playbooks`, all 3 `ch11-storage-lvm`, and 2
+      `ch02-navigator-git`. Each runs the playbook as `student` and asserts
+      with `ansible <group> -m command/shell` (rpm -q, systemctl is-active,
       firewall-cmd --query-*, getent, semanage fcontext -l, ls -Z, nmcli -g,
-      cat /etc/yum.repos.d/*.repo). Discovered and fixed along the way:
-      `topology.sh` bootstrap never installed the `community.general` /
-      `ansible.posix` collections every single RHCE playbook module depends
-      on (only `ansible-core`, which ships zero collections) — added
-      `ansible-galaxy collection install community.general ansible.posix` to
-      control-node bootstrap, plus `firewalld`/`python3-firewall`/
-      `policycoreutils-python-utils`/`NetworkManager` to managed-node
-      bootstrap so the `firewalld`/`seboolean`/`sefcontext`/`nmcli` modules
-      have their runtime deps. `selinux-playbook-v1/setup.sh` now
-      pre-populates `$CUSTOM_DIR` with a real file on the prod nodes so
-      "apply context to existing files" is an actual, checkable action
-      instead of a no-op against a directory that never existed.
-      **Update (2026-07-26): the per-node disk blocker is resolved and all
-      9/9 ch04-playbooks + all 3/3 ch11-storage-lvm tasks are now reworked**
-      (12/12 of the two highest-priority chapters). Built the missing
-      per-node disk plumbing: `_assign_task_disks`/`_generate_task_params`
-      (`lib/exam.sh`) now read a task's `NEEDS_NODES` alongside `NEEDS_DISK`
-      and record a target node list (plus an optional `NEEDS_DISK_SIZE_MIB`
-      override for tasks needing a small, precisely-sized raw disk) in
-      `task-disks.txt`; `certs/rhce/topology.sh` attaches a dedicated
-      per-(task,node) block volume idempotently (mirroring RHCSA's re-attach
-      check) and cleans it up in `topology_destroy`; a new `nodesetup.sh`
-      per-task hook (mirroring `postsetup.sh`) runs on a task's actual target
-      managed node(s) instead of always on the control node, since
-      `setup.sh`/`postsetup.sh` only ever ran on `VM_NAMES[0]`; the real
-      attached device name is discovered via `incus exec ... lsblk` (size
-      match, same technique RHCSA's own `setup.sh` scripts use) and injected
-      as a `DISK` param, replacing the fabricated `DISK=sdb`/
-      `DISK_DEVICE=/dev/sdb` guesses that `partition-playbook-v1`/
-      `error-handling-v1`'s `params.sh` had never validated against how Incus
-      VM disks actually enumerate. `lib/lint.sh` updated to know about the
-      new `DISK`/`TASK_DISK_SIZE_MIB` params and to scan `nodesetup.sh` too;
-      `rhtr rhce lint` and `rhtr rhcsa lint` both still pass clean (0 errors)
-      after the changes. The 4 previously-blocked tasks' `grade.sh` now run
-      the real playbook and assert live state instead of grepping playbook
-      text: `error-handling-v1`/`lvm-playbook-v1` pre-size their VG's free
-      space (via `nodesetup.sh`) to land strictly between `FALLBACK_SIZE` and
-      `LV_SIZE`, so the real `block:`/`rescue:` behavior is actually
-      exercised every run (confirmed against both tasks' `solution.sh`, which
-      always attempts `LV_SIZE` first) and graded via `lvs`
-      size/`ansible-playbook` output content; `lvm-playbook-v2` asserts LV
-      size/filesystem/mount/fstab persistence on `prod`; `partition-playbook-v1`
-      sizes its raw disk (`NEEDS_DISK_SIZE_MIB=1000`) to force the same
-      deterministic rescue path and asserts partition size/filesystem via
-      `lsblk`/`blkid`. **Still needs a real end-to-end VM run** (no VM access
-      from this session, same limitation as the rest of 11a) — disk device
-      enumeration, the LVM free-space math, and Incus volume attach/detach
-      can only be validated live; in particular verify `_generate_task_params`'s
-      device-name discovery actually resolves before `nodesetup.sh` runs, and
-      that both `error-handling-v1`/`lvm-playbook-v1` reliably force the
-      rescue path across `node1..node5` without a race between disk
-      attachment and `nodesetup.sh` execution.
-      **First live-VM run (2026-07-24) hit exactly this kind of bug:**
-      `selinux-playbook-v1/setup.sh`'s two new `ansible prod ...` calls ran
-      from `student`'s home dir instead of `$ANSIBLE_DIR`, so `ansible.cfg`'s
-      `host_key_checking = False` wasn't picked up — the first-ever SSH from
-      `student` to node3/node4 hit an unaccepted host key non-interactively
-      and `ansible` reported both hosts unreachable (rc=4), failing session
-      setup for the whole exam. Fixed by `cd $ANSIBLE_DIR &&` before both
-      calls, matching the pattern `grade.sh` already used. Still untested:
-      the other 7 reworked ch04 `grade.sh` scripts' exact module output
-      formats (e.g. `nmcli -g` field ordering, `getsebool`/
-      `semanage fcontext -l` output shape) against a real Rocky 9 managed
-      node — only `selinux-playbook-v1` has been exercised end-to-end so
-      far.
+      lvs, blkid, findmnt, lsblk).
+
+      Remaining, in rough priority order: ch06-tasks-control, ch07-files-jinja2,
+      ch08-roles, ch05-variables, ch03-inventory, ch09-vault,
+      ch10-troubleshooting, ch01-ansible-basics, and `git-playbook-repo-v1`
+      (the one ch02 task still text-only).
+
+      Supporting fixes made along the way, now permanent: control-node
+      bootstrap installs `community.general` + `ansible.posix` (plain
+      `ansible-core` ships zero collections, so every RHCE playbook module
+      was missing); managed-node bootstrap installs `firewalld`,
+      `python3-firewall`, `policycoreutils-python-utils`, `NetworkManager`
+      for those modules' runtime deps; per-node task disks and the
+      `nodesetup.sh` hook (see Phase 12d) unblocked the four LVM/partition
+      tasks that previously targeted a volume group or disk that existed
+      nowhere.
+
+      **Not yet validated live:** only `selinux-playbook-v1` has been
+      exercised end-to-end on real VMs. Unverified against a real Rocky 9
+      node: the other reworked graders' exact module output formats
+      (`nmcli -g` field ordering, `getsebool`/`semanage fcontext -l` shape),
+      task-disk device enumeration, the LVM free-space math that forces the
+      `rescue:` path, and whether device-name discovery resolves before
+      `nodesetup.sh` runs without racing disk attachment.
 - [x] **`container-user-service-v1` claims RHEL 10 but solution uses
       `podman generate systemd`** — removed in podman 5.x (RHEL 10). Capped
       `RHEL_VERSIONS` to `"8 9"` rather than attempting a Quadlet rewrite
@@ -527,16 +301,19 @@ library compared against the current EX200/EX294 objectives.
       VMs (or add `rhtr <cert> start`); today a stopped VM = raw Incus error
 - [ ] `lib/select.sh:28` — non-numeric topic count in a profile throws a raw
       bash error instead of `die` naming the bad entry
-- [ ] Duplicate `## Phase 9` heading in this file — merge the two sections
+- [x] Duplicate `## Phase 9` heading in this file — merged
 
 ### 11e — Improve
 
-- [ ] **`bin/lint-tasks` — automated task-convention linter** (solves the
-      recurring "models re-introduce hints" problem structurally): fail on
-      hint phrasing in task.md (`Note:`, `Tip:`, `you can`, `e.g. <command>`,
-      man-page refs), non-whitelisted meta.sh variables, params.sh vars unused
-      by grade.sh, solution.sh referencing none of its params vars. Run in a
-      pre-commit hook / CI so violations can't land
+- [ ] **Extend the linter to catch hint leaks structurally** (solves the
+      recurring "models re-introduce hints" problem). `lib/lint.sh` ships and
+      covers meta fields, script syntax, shellcheck, `{{placeholder}}`
+      resolution, `NEEDS_*` requirements, conflicts, and — for the exam pool
+      only — no `hint.md` and no module naming in task.md. Still missing:
+      hint phrasing in training-pool task.md (`Note:`, `Tip:`, `you can`,
+      `e.g. <command>`, man-page refs), params.sh vars unused by grade.sh,
+      solution.sh referencing none of its params vars. Run in a pre-commit
+      hook / CI so violations can't land
 - [ ] shellcheck over `bin/` + `lib/` + all task scripts, fix findings, keep in CI
 - [ ] Validate RHEL 8 and 9 end-to-end (only 10 was validated); while there,
       confirm `ch11-boot/grub-timeout-v1`'s hardcoded `/boot/grub2/grub.cfg`
@@ -594,14 +371,12 @@ Target ≥6 per chapter. Specific new tasks, all exam-aligned:
 
 ## Phase 12 — RHCE: non-prescriptive exam-format mode (`--format exam`)
 
-Audit (2026-07-25) of all 55 `tasks/` task.md/grade.sh pairs: 41 name the exact
-module to use in task.md, 42 `grep` the student's playbook source for that
-module name in grade.sh (fail if a different valid module was used), and only
-8 actually apply the playbook and check resulting state on the managed nodes —
-the rest either only run `--syntax-check` (43) or check file content that
-never touches a node at all. Good for *learning* which module does what; not
-representative of EX294, which states an outcome only and grades on live
-system state, never on how you got there.
+The `tasks/` pool is prescriptive by design: task.md names the exact module to
+use and grade.sh greps the student's playbook source for it, failing a
+different but equally valid module. Even the reworked graders that assert live
+state keep one or two module-name greps as a gate. Good for *learning* which
+module does what; not representative of EX294, which states an outcome only
+and grades on live system state, never on how you got there.
 
 Decision: keep `tasks/` exactly as-is (it's good training-wheels material) and
 add a second, parallel pool for exam-realistic practice. The existing pool,
@@ -630,8 +405,8 @@ authored as pipeline proof — see 12a/12b for what's still open):
 - [x] `grade.sh`: state-only, always — no `grep` of `$PLAYBOOK_FILE` or any
       other source-inspection of the student's work. Every assertion checks
       live state on the managed nodes via `ansible ... -m command`/curl —
-      stricter than the 8 "reworked" ch04 tasks in `tasks/`, which still keep
-      1-2 module-name greps as a gate; this pool has zero source-inspection
+      stricter than the reworked `tasks/` graders, which still keep 1-2
+      module-name greps as a gate; this pool has zero source-inspection
 - [x] First scenario built and live-verified end-to-end against real Incus
       VMs: `webserver-stack-v1` (httpd + custom docroot + template + SELinux
       fcontext + firewalld + restart-on-change handler, graded by curl from
@@ -715,6 +490,22 @@ owner wanted them explicitly:
       are **removed outright** — breaking CLI change, intentional. Topology
       now always sizes itself to exactly what's declared, so the failure mode
       `--nodes` guarded against no longer exists.
+- [x] **Per-node task disks + `nodesetup.sh`** — `NEEDS_DISK=1` combined with
+      `NEEDS_NODES` now gives a task one dedicated block volume per listed
+      managed node, recorded in `task-disks.txt` (`slug|gib|nodes|mib`) by
+      `_assign_task_disks` and attached idempotently by
+      `certs/rhce/topology.sh`, which also deletes them in
+      `topology_destroy`. `NEEDS_DISK_SIZE_MIB` opts a task out of the shared
+      whole-GiB counter when the disk's exact size is what makes the task
+      work. `_generate_task_params` discovers the attached device's real
+      kernel name by size-matching `lsblk` on the node and injects it as
+      `$DISK`, replacing the fabricated `sdb` guesses that never matched how
+      Incus VM disks enumerate. The new `nodesetup.sh` hook runs on a task's
+      target nodes — `setup.sh`/`postsetup.sh` only ever run on `VM_NAMES[0]`
+      — for state that must exist on the node itself. RHCSA is unaffected:
+      with `NEEDS_NODES` unset the nodes column stays empty and the original
+      `EXTRA_DISK_SIZES_GIB` path runs unchanged. `lib/lint.sh` knows the new
+      params and scans `nodesetup.sh`; both certs lint clean.
 - [x] Backfilled `NEEDS_NODES` onto 15 of the 55 existing `tasks/` tasks whose
       real footprint (content-derived, cross-checked against actual
       `ansible`/`ansible-playbook` execution in each task's `grade.sh` — not
@@ -758,10 +549,8 @@ owner.
       all read-modify-write with no protection; concurrent invocations
       against the same state corrupt or silently lose data.
 - [ ] Training-progress history keyed only by OS `$HOME`
-      (`lib/progress.sh:4`, `~/.local/share/redhat-training/progress/` — note
-      this is the real path; both `README.md` and this file's own header
-      comment say `~/.redhat-training/progress/`, which is stale/wrong) —
-      not per-tenant; two tenants on one host user would merge histories.
+      (`lib/progress.sh`, `${XDG_DATA_HOME:-~/.local/share}/redhat-training/progress/`)
+      — not per-tenant; two tenants on one host user would merge histories.
 - [ ] VM names are a pure function of cert+RHEL-version
       (`rhtr-rhcsa-server-9`, `rhtr-rhce-control-9`, ...) with no
       session/user component — two concurrent same-cert-same-version
@@ -772,9 +561,8 @@ owner.
       with hardcoded CPU/RAM — no per-tenant tiering possible without
       mutating a profile object shared by every VM that references it.
 - [ ] Shared default network bridge and shared default storage pool for all
-      VMs — README already flags "isolated bridge network" as
-      planned-not-implemented; no network segmentation between tenants
-      exists today.
+      VMs — an isolated bridge was considered and deliberately not adopted
+      (Phase 6); no network segmentation between tenants exists today.
 - [ ] `CERT` and profile/fixed/topic names arrive as raw CLI args and are
       used as unsanitized path components that get `source`d as bash
       (`bin/rhtr:76,82-83`; `lib/exam.sh:716-717,725-726`) — safe only
@@ -794,8 +582,8 @@ owner.
 
 ### 13b — Resource/capacity math (from actual code, for pricing & infra sizing)
 
-- [ ] RHCSA session: 2 vCPU / 2 GiB / 1 VM + one block disk
-      (`certs/rhcsa/topology.sh`). RHCE full-topology session: 1 control +
+- [ ] RHCSA session: 2 vCPU / 2 GiB / 1 VM + one block disk per disk-needing
+      task (`certs/rhcsa/topology.sh`). RHCE full-topology session: 1 control +
       up to 5 nodes × 2 vCPU/1 GiB each = **12 vCPU / 6 GiB per session**
       (`certs/rhce/topology.sh:54-55` + launch loop) — RHCE is ~6x the
       footprint of RHCSA and CPU-bound, not RAM-bound.
@@ -815,7 +603,7 @@ owner.
 
 ### 13c — Grading integrity as a paid-product trust issue
 
-- [ ] 43/55 RHCE training-pool `grade.sh` scripts only check playbook
+- [ ] 41/55 RHCE training-pool `grade.sh` scripts only check playbook
       syntax/text, not live state (tracked in 11a) — for a paid product this
       is a direct refund/trust risk on the RHCE side specifically; RHCSA
       grading was independently re-verified as solid in this review

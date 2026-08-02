@@ -169,6 +169,16 @@ rhtr rhcsa hint                             # train mode only: show hint for cur
 rhtr rhcsa grade                            # run all graders, print score report
 rhtr rhcsa grade --task 10                  # grade only task 10 (see: rhtr rhcsa tasks)
 rhtr rhcsa status                           # show timer, task count, current score if graded
+rhtr rhcsa tasks                            # list this session's tasks with their numbers
+```
+
+### After grading
+
+```bash
+rhtr rhcsa save                             # append last graded session's per-topic scores to history
+rhtr rhcsa save "before storage drill"      # optional label
+rhtr rhcsa overview                         # best/last score per topic, this cert
+rhtr overview                               # best/last score per topic, across all certs
 ```
 
 `shell` goes through the incus-agent and needs the VM fully booted and networked;
@@ -200,6 +210,9 @@ rhtr rhcsa list-profiles                    # random weighted profiles
 rhtr rhcsa list-fixed                       # pinned fixed exam lists
 rhtr rhcsa show ch05-selinux/fix-file-context-v1   # print task.md for one task
 
+rhtr rhce list-profiles --format exam       # profiles for the outcome-graded tasks-exam/ pool
+rhtr rhce show webserver-stack-v1 --format exam
+
 rhtr rhcsa progress                         # training history table: pass rate per task
 rhtr rhcsa progress --topic ch05-selinux    # filter progress by chapter
 
@@ -218,11 +231,15 @@ redhat-training/
 │   └── rhtr                        # CLI entry point — symlink target
 │
 ├── lib/
-│   ├── core.sh                     # die, log, color output, path helpers
+│   ├── core.sh                     # die, log, color output, path/pool helpers
 │   ├── vm.sh                       # Incus VM lifecycle (cert-agnostic)
 │   ├── select.sh                   # task selection: random weighted / fixed / topic
 │   ├── exam.sh                     # exam + train orchestration, timer, display
-│   └── report.sh                   # grading loop, scoring, output formatting
+│   ├── report.sh                   # grading loop, scoring, output formatting
+│   ├── list.sh                     # discovery commands (certs, topics, tasks, profiles)
+│   ├── progress.sh                 # per-task train-mode pass/attempt history
+│   ├── history.sh                  # saved session scores per topic (save / overview)
+│   └── lint.sh                     # static task/profile/fixed-list checks
 │
 ├── certs/
 │   ├── rhcsa/
@@ -258,7 +275,7 @@ redhat-training/
 │   └── rhce/
 │       ├── cert.conf
 │       ├── topology.sh
-│       ├── tasks/
+│       ├── tasks/                  # training pool (--format training, default)
 │       │   ├── ch01-ansible-basics/
 │       │   ├── ch02-navigator-git/
 │       │   ├── ch03-inventory/
@@ -270,14 +287,20 @@ redhat-training/
 │       │   ├── ch09-vault/
 │       │   ├── ch10-troubleshooting/
 │       │   └── ch11-storage-lvm/
+│       ├── tasks-exam/             # exam pool (--format exam) — flat, not chapter-nested
+│       │   └── webserver-stack-v1/
 │       └── exams/
-│           ├── profiles/
-│           └── fixed/
+│           ├── profiles/           # training-pool weighted draws
+│           ├── fixed/              # training-pool pinned lists
+│           ├── profiles-exam/      # exam-pool draws (SCENARIO_COUNT)
+│           └── fixed-exam/         # exam-pool pinned lists (SCENARIOS)
 │
 ├── .state/                         # gitignored — runtime state of active session
 │   ├── cert                        # which cert is active: "rhcsa" | "rhce"
 │   ├── exam.conf                   # session metadata
 │   ├── active-tasks.txt            # selected task dirs, one per line
+│   ├── task-disks.txt              # per-task disk assignments: slug|gib|nodes|mib
+│   ├── task-params/                # frozen params.sh output per task, one .env each
 │   └── grades.txt                  # results after grading
 │
 └── README.md
@@ -294,11 +317,23 @@ tasks/ch05-selinux/fix-file-context-v1/
 ├── meta.sh         # required
 ├── task.md         # required
 ├── setup.sh        # required — creates the exam state on the VM
+├── params.sh       # optional — randomises values per session; prints KEY=value lines
 ├── postsetup.sh    # optional — runs after every selected task's setup.sh
+├── nodesetup.sh    # optional — runs on the task's NEEDS_NODES managed nodes (RHCE)
 ├── grade.sh        # required — exit 0 = pass, exit 1 = fail
 ├── hint.md         # optional — shown in train mode on request
 └── solution.sh     # optional — shown after grading in train mode
 ```
+
+`params.sh` runs once per session on the host. Its `KEY=value` output is frozen into
+`.state/task-params/<slug>.env`, substituted into `task.md` as `{{KEY}}`, and exported
+into `setup.sh`, `nodesetup.sh`, and `grade.sh` — so the task text, the state built on
+the VM, and the grader always agree on the same randomised values.
+
+`setup.sh` and `postsetup.sh` always run on the session's first VM (the RHCSA server, or
+the RHCE control node). `nodesetup.sh` is the only hook that runs on the managed nodes
+themselves, once per node in the task's `NEEDS_NODES` — for state that must exist on the
+node rather than on control, such as a pre-sized volume group on a task's own disk.
 
 ### meta.sh
 
@@ -310,6 +345,9 @@ TITLE="Fix SELinux file context on web directory"
 DIFFICULTY="medium"       # easy | medium | hard
 RHEL_VERSIONS="8 9 10"   # space-separated; omit a version if the task is incompatible
 CONFLICTS=("ch09-vault/vault-group-vars-v1")   # optional — see below
+NEEDS_DISK=1              # optional — task gets its own block disk
+NEEDS_DISK_SIZE_MIB=1000  # optional — exact MiB size instead of the shared GiB counter
+NEEDS_NODES=(node3 node4) # optional (RHCE) — which managed nodes this task needs
 ```
 
 `RHEL_VERSIONS` tells the selector which base images this task can run against.
@@ -330,6 +368,22 @@ instead, same as a conflicting pair in a fixed exam list (`exams/fixed/*.conf`),
 hand-curated and always runs every listed task together. Run `rhtr <cert> lint` after
 adding or editing a `CONFLICTS` entry.
 
+`NEEDS_DISK=1` gives the task its own block volume — never shared with another task, so
+one task's partitioning can't destroy another's. Each disk-needing task in a session gets
+a distinct size (3 GiB upward, skipping the 10 GiB root size) so a task can find "its"
+disk by size; the assigned size reaches the task's scripts as `$TASK_DISK_SIZE_GB` and
+`$DISK_SIZE`. `NEEDS_DISK_SIZE_MIB` opts out of that counter and asks for an exact MiB
+size instead, for tasks where the disk's own size is what makes the task work; those get
+`$TASK_DISK_SIZE_MIB` and `$DISK_SIZE`.
+
+`NEEDS_NODES` (RHCE) declares which managed nodes the task actually uses. The session
+builds the union of every selected task's nodes, so a session only ever launches the VMs
+it needs; unset means all five. It also targets `NEEDS_DISK`: a disk-needing task with
+`NEEDS_NODES` gets one dedicated volume per listed node, and its real device name is
+discovered on the node and passed to its scripts as `$DISK` (e.g. `vdb`). A disk-needing
+task without `NEEDS_NODES` takes the RHCSA path — the disk goes to the session's single
+VM and no `$DISK` is injected.
+
 ### grade.sh contract
 
 - Runs as root inside the VM via `incus exec`
@@ -343,6 +397,13 @@ adding or editing a `CONFLICTS` entry.
 - Runs as root inside the VM before the exam starts
 - Creates the "broken" or "unconfigured" state the candidate must fix
 - Must clean up any previous state (re-runnable for `rhtr reset`)
+
+### nodesetup.sh contract
+
+- Runs as root on each managed node in the task's `NEEDS_NODES`, after every `setup.sh`
+- Same re-runnable requirement as `setup.sh` — and stricter: disk volumes are keyed by
+  task and node, not by session, so a reused volume can still hold the previous run's
+  partitions or volume groups and must be wiped before use
 
 ---
 
@@ -405,7 +466,7 @@ can coexist: `rhtr-rhcsa-server-9`, `rhtr-rhcsa-server-8`.
 
 ### RHCSA
 
-One VM, one extra block disk for storage and LVM tasks.
+One VM, plus one dedicated block disk per selected task that declares `NEEDS_DISK=1`.
 
 | Resource | Value |
 |---|---|
@@ -413,7 +474,7 @@ One VM, one extra block disk for storage and LVM tasks.
 | Base image | `rocky8` / `rocky9` / `rocky10` |
 | Default RHEL | 9 |
 | CPU / RAM | 2 vCPU / 2 GB |
-| Extra disk | 4 GB block volume for partitioning / LVM tasks |
+| Extra disks | `rhtr-rhcsa-disk-<version>-<n>` — one per disk-needing task, distinct sizes from 3 GiB up |
 
 ### RHCE
 
@@ -435,12 +496,19 @@ playbook paths under `/home/student/ansible/`.
 
 | Default RHEL | 9 |
 
-Grading is mostly static: `grade.sh` validates playbook/config YAML,
-`--syntax-check`, and required module/parameter usage via targeted greps.
-Some tasks additionally run the playbook for real (e.g. `ansible-navigator
-run`) and assert on its output. That's the default `tasks/` pool; the
-`--format exam` `tasks-exam/` pool always runs the playbook for real and
-grades only on resulting live state, never on the playbook's source.
+Managed nodes get no extra disk by default. A task that declares both `NEEDS_DISK=1`
+and `NEEDS_NODES` gets one dedicated block volume per listed node
+(`rhtr-rhce-disk-<version>-<task>-<node>`), attached before the task's `nodesetup.sh`
+runs.
+
+Grading in the `tasks/` pool is mixed. 14 of the 55 tasks run the student's playbook for
+real and assert live state on the managed nodes — all of `ch04-playbooks`, all of
+`ch11-storage-lvm`, and two `ch02-navigator-git` tasks. The remaining 41 validate
+playbook/config YAML, `--syntax-check`, and required module/parameter usage via targeted
+greps, without touching node state. Reworking the rest chapter by chapter is tracked in
+TODO.md. The `--format exam` `tasks-exam/` pool has no static path at all: it always runs
+the playbook for real and grades only on resulting live state, never on the playbook's
+source.
 
 ---
 
@@ -475,19 +543,26 @@ clones.
 
 ```
 .state/cert                 # active cert name
-.state/exam.conf            # NAME, DURATION, PASS_THRESHOLD, MODE, DEADLINE_EPOCH
+.state/exam.conf            # NAME, DURATION, PASS_THRESHOLD, MODE, FORMAT,
+                            # RHEL_VERSION, SESSION_NODES, DEADLINE_EPOCH
 .state/active-tasks.txt     # absolute paths of selected tasks, ordered
+.state/task-disks.txt       # slug|size_gib|nodes|size_mib per disk-needing task
+.state/task-params/         # <slug>.env — frozen params.sh output, one file per task
 .state/grades.txt           # task_path|PASS|pts_earned|pts_total  (post-grade)
 ```
+
+`.last-session/` keeps a copy of the task list and `task-params/` after `destroy`, so
+`rhtr <cert> tasks` can still show what the previous session contained.
 
 ---
 
 ## Training progress
 
-Train-mode results are persisted per task in `~/.redhat-training/progress/`.
+Train-mode results are persisted per task in
+`${XDG_DATA_HOME:-~/.local/share}/redhat-training/progress/`.
 
 ```
-~/.redhat-training/progress/
+~/.local/share/redhat-training/progress/
 ├── rhcsa/
 │   └── ch05-selinux__fix-file-context-v1.json
 └── rhce/
@@ -536,10 +611,13 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
 | **Profiles** | `topology.sh` per cert | Reusable VM config (CPU/RAM/secureboot) — `incus launch` stays a one-liner |
 | **`snapshot create --reuse`** | `lib/vm.sh` | Atomic snapshot replacement — no window without a snapshot during reset |
 | **`file push --mode`** | `lib/vm.sh` | Scripts pushed as real files; avoids stdin issues in grade/setup scripts that read input themselves |
-| **Isolated bridge network** | `certs/rhce/topology.sh` (planned) | Managed nodes reachable only from control — mirrors real RHCE topology |
-| **`cloud-init.user-data`** | `certs/rhce/topology.sh` (planned) | First-boot managed node config (ansible user, SSH key, Python) without post-boot scripts |
+| **`image import` + rootfs patch** | `lib/vm.sh` (`_vm_inject_agent_bootstrap`) | Injects an agent-bootstrap unit into the image; Incus ignores `cloud-init.vendor-data` for VMs, so it must live in the image |
+| **Block storage volumes** | both `topology.sh` files | Per-task disks for partitioning/LVM work, attached and removed with the session |
 
-**Not yet used but available if needed:**
+**Not used, available if needed:**
+- Isolated bridge network and `cloud-init.user-data` first-boot config — both considered
+  for RHCE and not adopted; the shared `default` bridge plus post-boot `vm_exec`
+  bootstrap is simpler, and managed nodes need no reachability from outside the host
 - `--project rhtr` scoping — isolate all rhtr VMs from other Incus workloads
 - `snapshot create --expiry` — auto-expire stale snapshots
 - `incus monitor` — live JSON event stream for a real-time status display
@@ -553,8 +631,12 @@ The `rhtr` CLI picks up the new cert automatically — no changes to `lib/` need
   stripped image without SELinux; `setenforce 1` kills the Incus agent on that image.
 - VM snapshots use `incus snapshot create` / `incus snapshot restore` — the restore
   command is `incus snapshot restore <instance> <snapshot>`, not `incus restore`.
-- Extra block volumes for RHCSA storage tasks must be created with `--type=block`;
+- Extra block volumes for storage tasks must be created with `--type=block`;
   filesystem-type volumes cannot be attached to VMs.
+- Task disk volumes are keyed by task (and node), not by session, and they are not
+  covered by the pre-exam snapshot — `reset` restores the VM but leaves a task disk
+  exactly as the candidate left it. Setup scripts must wipe their own disk rather than
+  assume it is blank.
 - Launching the VM with `security.secureboot=false` avoids a known `blk_mq_get_tag`
   kernel panic on first boot.
 - The base image ships GRUB with `GRUB_TERMINAL_OUTPUT="gfxterm"` only — no

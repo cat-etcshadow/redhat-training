@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# progress.sh — per-task training history in ~/.redhat-training/progress/
+# progress.sh — per-task training history in ${XDG_DATA_HOME:-~/.local/share}/redhat-training/progress/
 
 PROGRESS_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/redhat-training/progress"
 
