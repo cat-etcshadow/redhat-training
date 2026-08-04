@@ -349,6 +349,65 @@ _lint_chapter_conflicts() {
   done
 }
 
+# ── identifier-pool overlap ───────────────────────────────────────────────────
+#
+# Two tasks whose params.sh can randomly draw the SAME username/group name will
+# fight over that account whenever they land in one session: the first task's
+# setup.sh deletes it, the second's recreates it with different attributes, and
+# whichever task is graded on the attributes it asked for fails through no fault
+# of the candidate. CONFLICTS can't express this — the clash is probabilistic,
+# and declaring one would wrongly bar the pair from ever being drawn together.
+# Disjoint pools are the fix, so overlap is what gets reported.
+#
+# Same-chapter overlap is an ERROR ('train --topic' always draws the whole
+# chapter); cross-chapter is a WARN (only some profile draws pair them).
+_lint_pool_overlap() {
+  local base; base=$(pool_dir "$CERT" training)
+  [[ -d "$base" ]] || return 0
+  echo ""
+  echo -e "${C_BOLD}Identifier-pool overlap${C_RESET}"
+  _LINT_FINDINGS=()
+
+  local report
+  report=$(python3 - "$base" <<'PY'
+import re, sys, glob, os, collections
+base = sys.argv[1]
+pools = {}
+for p in sorted(glob.glob(os.path.join(base, "*/*/params.sh"))):
+    task = os.path.relpath(os.path.dirname(p), base)
+    vals = set()
+    txt = open(p, errors="replace").read()
+    for m in re.finditer(r'^([A-Z_0-9]+)=\((.*?)\)', txt, re.M | re.S):
+        if not re.search(r'USER|GROUP|NAME|ACCOUNT', m.group(1)):
+            continue
+        for v in m.group(2).split():
+            v = v.strip("\"'")
+            if re.fullmatch(r'[a-z][a-z0-9_-]{1,20}', v):
+                vals.add(v)
+    if vals:
+        pools[task] = vals
+
+names = sorted(pools)
+for i in range(len(names)):
+    for j in range(i + 1, len(names)):
+        a, b = names[i], names[j]
+        shared = pools[a] & pools[b]
+        if not shared:
+            continue
+        sev = "ERROR" if os.path.dirname(a) == os.path.dirname(b) else "WARN"
+        print(f"{sev}\t{a} and {b} can both draw: {', '.join(sorted(shared))}")
+PY
+  ) || true
+
+  local sev msg
+  while IFS=$'\t' read -r sev msg; do
+    [[ -z "$sev" ]] && continue
+    _lint_add "$sev" "$msg"
+  done <<< "$report"
+
+  _lint_emit_result "identifier pools"
+}
+
 # All-pairs CONFLICTS check across the flat exam-format pool — there's no
 # chapter grouping to scope it by the way _lint_chapter_conflicts does above,
 # but the pool is small (~15-20 curated scenarios) so an all-pairs check is
@@ -719,6 +778,7 @@ cmd_lint() {
 
     if [[ -z "$filter_topic" ]]; then
       _lint_chapter_conflicts
+      _lint_pool_overlap
       _lint_profiles
       _lint_fixed_lists
     fi
