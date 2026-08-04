@@ -16,10 +16,14 @@ vm_running() {
 }
 
 # ── lifecycle ─────────────────────────────────────────────────────────────────
+# "running" is not the same as "usable": right after a snapshot restore the
+# instance is already running while its agent (and the agent's SFTP subsystem)
+# is still coming up, so returning early here left topology_create's reuse path
+# pushing files into a VM that couldn't accept them yet. Always wait — it's a
+# no-op once the agent answers.
 vm_start() {
   local name="$1"
-  vm_running "$name" && return 0
-  incus start "$name"
+  vm_running "$name" || incus start "$name"
   vm_wait_ready "$name"
 }
 
@@ -73,14 +77,26 @@ vm_wait_ready() {
   if (( attempt > 0 )); then echo ""; fi
 
   # Wait for SFTP to be ready — the incus agent initialises the SFTP subsystem
-  # slightly after the exec socket.  File pushes fail with HTTP-500 if we
-  # proceed before this is up.
+  # slightly after the exec socket, and file pushes fail with HTTP-500 until
+  # it is.
+  #
+  # Probe by pushing, not pulling: this used to pull /etc/hostname, which the
+  # Rocky cloud image doesn't ship at all (hostname is transient, set from
+  # DHCP), so the probe failed every time regardless of SFTP state and the
+  # loop degenerated into a fixed sleep that proved nothing. Pushing a scratch
+  # file is the exact operation callers depend on.
+  local probe; probe=$(mktemp)
   attempt=0
-  while ! incus file pull "${name}/etc/hostname" /dev/null &>/dev/null; do
+  while ! incus file push --uid 0 --gid 0 "$probe" "${name}/tmp/.rhtr-sftp-probe" &>/dev/null; do
     sleep 1
     (( attempt++ )) || true
-    [[ $attempt -ge 30 ]] && break   # 30 s max — don't block indefinitely
+    if [[ $attempt -ge 60 ]]; then
+      warn "SFTP subsystem not ready on $name after 60 s — file pushes may fail"
+      break
+    fi
   done
+  rm -f "$probe"
+  incus exec "$name" -- rm -f /tmp/.rhtr-sftp-probe </dev/null &>/dev/null || true
 }
 
 # ── exec helpers ──────────────────────────────────────────────────────────────
@@ -94,7 +110,12 @@ vm_exec_script() {
   local script="$2"
   [[ -f "$script" ]] || die "Script not found: $script"
 
-  local remote="/tmp/rhtr-$$.sh"
+  # Unique per call, not per process. This used to be a fixed /tmp/rhtr-$$.sh,
+  # so one failed push left a 0-byte root-less file behind and every later push
+  # in the same run hit "permission denied" on it — turning a single transient
+  # failure into a cascade that killed the whole session. A stale copy can also
+  # arrive inside a snapshot and come back on every restore.
+  local remote="/tmp/rhtr-$$-${RANDOM}-${SECONDS}.sh"
   local rc=0
   local attempt
   # Setup scripts (passwd, dnf, podman pull, etc.) are noisy on stdout/stderr.
@@ -106,7 +127,11 @@ vm_exec_script() {
     # File push uses SFTP, which the incus agent initialises slightly after the
     # exec socket.  Retry the push on failure (e.g. HTTP-500 on first launch)
     # rather than letting set -e abort the whole session setup.
-    if ! incus file push --mode 0700 "$script" "${name}${remote}" 2>/dev/null; then
+    # Clear any leftover at the target, and force root ownership — a push
+    # otherwise inherits the *local* file's uid/gid (1000 here), which lands a
+    # non-root file under sticky /tmp that later pushes can't reopen.
+    incus exec "$name" -- rm -f "$remote" </dev/null &>/dev/null || true
+    if ! incus file push --mode 0700 --uid 0 --gid 0 "$script" "${name}${remote}" 2>/dev/null; then
       [[ $attempt -lt 3 ]] || { warn "File push failed after 3 attempts: $script"; rm -f "$out"; return 1; }
       warn "SFTP push failed (attempt $attempt/3) — waiting 5 s for agent SFTP..."
       sleep 5
@@ -184,9 +209,16 @@ vm_snapshot_create() {
   done
 }
 
+# Restoring a *running* instance leaves its pre-restore agent answering for a
+# moment, so vm_wait_ready would return immediately against a VM that is in
+# fact still coming back — and every file push right after it failed. Stopping
+# first makes the restore deterministic: the only agent that can answer
+# afterwards is the restored one.
 vm_snapshot_restore() {
   local name="$1"
+  vm_stop "$name"
   incus snapshot restore "$name" "$SNAPSHOT_NAME"
+  incus start "$name"
   vm_wait_ready "$name"
 }
 
