@@ -19,11 +19,13 @@
 #   control  → node1 (dev), node2 (test), node3 (prod), node4 (prod), node5 (balancers)
 # SSH key auth from control → all built nodes configured by topology_create.
 
-_rhce_vm()      { echo "rhtr-rhce-${1}-${RHEL_VERSION}"; }
+# RHTR_VM_SUFFIX keeps a verify sweep's VMs and disks off a live session's
+# names — empty by default, so normal runs are unchanged.
+_rhce_vm()      { echo "rhtr-rhce-${1}-${RHEL_VERSION}${RHTR_VM_SUFFIX:-}"; }
 _rhce_img()     { echo "rocky${RHEL_VERSION}"; }
 _rhce_profile() { echo "rhtr-rhce"; }
 # $1 = sanitized task slug (ch11-storage-lvm__lvm-playbook-v1 -> ch11-storage-lvm-lvm-playbook-v1), $2 = node
-_rhce_disk_name() { echo "rhtr-rhce-disk-${RHEL_VERSION}-${1}-${2}"; }
+_rhce_disk_name() { echo "rhtr-rhce-disk-${RHEL_VERSION}${RHTR_VM_SUFFIX:-}-${1}-${2}"; }
 
 CONTROL_NAME=""
 NODE_NAMES=()
@@ -172,7 +174,7 @@ topology_destroy() {
     [[ -z "$disk" ]] && continue
     incus storage volume delete default "$disk" 2>/dev/null || true
   done < <(incus storage volume list default --format csv -c n 2>/dev/null \
-             | grep "^rhtr-rhce-disk-${RHEL_VERSION}-")
+             | grep "^rhtr-rhce-disk-${RHEL_VERSION}${RHTR_VM_SUFFIX:-}-")
 
   ok "RHCE topology destroyed"
 }

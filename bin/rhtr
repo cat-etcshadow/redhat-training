@@ -4,7 +4,11 @@ set -euo pipefail
 
 # Resolve repo root from the real path of this script (survives symlinks)
 RHTR_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
-STATE_DIR="$RHTR_DIR/.state"
+# RHTR_STATE_DIR lets a second session hold its own state alongside the default
+# one — `rhtr verify` uses it so a sweep can't clobber a candidate's live
+# session. Pair it with RHTR_VM_SUFFIX (see certs/*/topology.sh), or both
+# sessions compute the same VM names and fight over one VM.
+STATE_DIR="${RHTR_STATE_DIR:-$RHTR_DIR/.state}"
 
 # Source all shared libraries
 source "$RHTR_DIR/lib/core.sh"
@@ -16,6 +20,7 @@ source "$RHTR_DIR/lib/list.sh"
 source "$RHTR_DIR/lib/exam.sh"
 source "$RHTR_DIR/lib/history.sh"
 source "$RHTR_DIR/lib/lint.sh"
+source "$RHTR_DIR/lib/verify.sh"
 
 # ── usage ─────────────────────────────────────────────────────────────────────
 usage() {
@@ -52,6 +57,11 @@ usage() {
     show          <chapter/task-variant> [--format training|exam]
     progress      [--topic <ch>]
     lint          [<chapter/task-variant>] [--topic <ch>] [--format training|exam]
+
+  Validation commands (build VMs — see "Validating tasks" in the README):
+    verify        [--topic <ch>] [--task <path>] [--fixed <name>] [--rhel <v>]
+                  [--batch <n>] [--isolate] [--resume] [--shard <id>]
+    verify --rank (static gameability ranking of graders, no VM)
 
   --format training|exam (default: training) selects which task pool a session/discovery
   command uses. "training" is certs/<cert>/tasks/ (learning-oriented, module-name grading
@@ -112,6 +122,7 @@ case "$CMD" in
   show)          cmd_show_task "$@" ;;
   progress)      cmd_progress "$@" ;;
   lint)          cmd_lint "$@" ;;
+  verify)        cmd_verify "$@" ;;
 
   *) echo "Unknown command: $CMD"; usage; exit 1 ;;
 esac

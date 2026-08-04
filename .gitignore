@@ -1,6 +1,7 @@
 # runtime state — never commit
 .state/
 .last-session/
+.verify/
 
 # downloaded VM images
 *.qcow2

@@ -219,6 +219,19 @@ rhtr rhcsa progress --topic ch05-selinux    # filter progress by chapter
 rhtr rhcsa lint                             # static checks: all tasks + profiles + fixed lists, no VM
 rhtr rhcsa lint ch05-selinux/fix-file-context-v1   # lint a single task
 rhtr rhcsa lint --topic ch05-selinux        # lint one chapter's tasks only
+
+rhtr rhcsa verify --rank                    # rank graders by how gameable they look, no VM
+```
+
+### Validating tasks against real VMs
+
+```bash
+rhtr rhcsa verify                           # sweep every task: setup → grade → solve → grade
+rhtr rhcsa verify --topic ch03-users        # one chapter
+rhtr rhcsa verify --task ch10-lvm/create-lv-v1
+rhtr rhcsa verify --fixed full-v1           # exactly the tasks a fixed exam draws
+rhtr rhcsa verify --resume                  # continue an interrupted sweep
+rhtr rhcsa verify --isolate                 # one task per VM cycle (slow, unambiguous)
 ```
 
 ---
@@ -509,6 +522,42 @@ greps, without touching node state. Reworking the rest chapter by chapter is tra
 TODO.md. The `--format exam` `tasks-exam/` pool has no static path at all: it always runs
 the playbook for real and grades only on resulting live state, never on the playbook's
 source.
+
+---
+
+## Validating the task library (`rhtr <cert> verify`)
+
+`lint` is static. `verify` builds real VMs and proves each task's
+setup/grade/solution chain actually holds, which is what stops a broken or
+gameable grader from shipping.
+
+Every task is put through four checks:
+
+| | Action | Expected | Catches |
+|---|---|---|---|
+| **C1** | grade right after `setup.sh` | **FAIL** | a grader that passes before any work is done |
+| **C2** | grade after `solution.sh` | **PASS** | a broken grader, or a broken solution |
+| **C3** | grade again, nothing changed | **PASS** | a grader with side effects on its own verdict |
+| **C4** | re-run `setup.sh`, grade again | **FAIL** | a `setup.sh` that isn't re-runnable, so `reset` leaves the task solved |
+
+Tasks are swept in batches of 12 that respect `CONFLICTS`, so each batch is a
+session that could legitimately have been drawn — which means the sweep also
+catches cross-task interference, not just per-task bugs. Anything that violates
+the contract is then re-run **alone on a clean VM**, so a genuinely broken
+grader is distinguishable from one that a neighbouring task's `setup.sh`
+trampled. The isolated result supersedes the batch result in the summary.
+
+Results append to `.verify/<cert>-<format>-rhel<v>.tsv` (gitignored), which is
+what `--resume` reads and what gives you a baseline to regress a new task or
+exam against.
+
+Sessions run under `RHTR_STATE_DIR` and `RHTR_VM_SUFFIX`, so a sweep never
+touches an in-progress exam's state or VMs.
+
+`verify --rank` is the static half: it scores each `grade.sh` by how much of its
+verdict rests on artefacts the candidate controls, and flags graders whose only
+"live" check is `ansible-playbook --syntax-check` (which never touches a managed
+node). Use it to pick targets for manual probing — it's a shortlist, not a verdict.
 
 ---
 

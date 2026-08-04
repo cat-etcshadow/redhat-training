@@ -21,8 +21,10 @@
 # Incus profile "rhtr-rhcsa" is created once and reused across sessions.
 # It captures all VM-level config so incus launch stays a one-liner.
 
-_rhcsa_vm_name()      { echo "rhtr-rhcsa-server-${RHEL_VERSION}"; }
-_rhcsa_disk_name()    { echo "rhtr-rhcsa-disk-${RHEL_VERSION}-${1}"; }
+# RHTR_VM_SUFFIX keeps a verify sweep's VMs and disks off a live session's
+# names — empty by default, so normal runs are unchanged.
+_rhcsa_vm_name()      { echo "rhtr-rhcsa-server-${RHEL_VERSION}${RHTR_VM_SUFFIX:-}"; }
+_rhcsa_disk_name()    { echo "rhtr-rhcsa-disk-${RHEL_VERSION}${RHTR_VM_SUFFIX:-}-${1}"; }
 _rhcsa_image()        { echo "rocky${RHEL_VERSION}"; }
 _rhcsa_profile_name() { echo "rhtr-rhcsa"; }
 
@@ -161,7 +163,7 @@ topology_destroy() {
     [[ -z "$disk" ]] && continue
     incus storage volume delete default "$disk" 2>/dev/null || true
   done < <(incus storage volume list default --format csv -c n 2>/dev/null \
-             | grep "^rhtr-rhcsa-disk-${RHEL_VERSION}-")
+             | grep "^rhtr-rhcsa-disk-${RHEL_VERSION}${RHTR_VM_SUFFIX:-}-")
 
   ok "Topology destroyed"
 }
