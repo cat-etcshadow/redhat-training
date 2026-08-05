@@ -1,5 +1,13 @@
 # redhat-training
 
+> **Frozen — superseded by [sw-ansible](https://github.com/cat-etcshadow/sw-ansible).**
+>
+> This is the original bash implementation. The Ansible engine has reached
+> feature parity and is where all further work happens: task fixes, new
+> chapters and grader changes land there and are not backported here. The
+> repository stays readable because the task library's history is worth
+> keeping, not because it is maintained.
+
 A CLI-driven lab environment for Red Hat certification exam practice and training.
 Spins up preconfigured virtual machines via Incus, presents realistic exam tasks,
 and grades your work automatically.
